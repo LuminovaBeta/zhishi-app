@@ -1,0 +1,19 @@
+{
+  "name": "learnnig-os-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "android:sync": "powershell -ExecutionPolicy Bypass -File scripts/sync-web.ps1",
+    "android:build": "npm run android:sync && cd android && gradlew.bat assembleDebug"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  }
+}

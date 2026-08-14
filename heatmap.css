@@ -1,0 +1,23 @@
+.heatmap-card{margin-top:12px;padding:20px 16px;border:1px solid #e2e6de;border-radius:20px;background:#18221c;color:#f4f7f3;overflow:hidden}
+.heatmap-head{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.heatmap-head h2{font:600 23px serif;margin:5px 0 7px}
+.heatmap-head>div>p:last-child{max-width:230px;margin:0;color:#9eaaa2;font-size:11px;line-height:1.5}
+.heatmap-card .eyebrow{color:#9eaaa2}
+.heatmap-legend{display:flex;align-items:center;gap:4px;white-space:nowrap;color:#9eaaa2;font-size:9px;margin-top:5px}
+.heatmap-legend i{width:10px;height:10px;border-radius:3px}
+.month-row{display:grid;grid-template-columns:repeat(13,1fr);padding-left:25px;margin-top:21px;height:17px}
+.month-row span{font-size:9px;color:#9eaaa2;white-space:nowrap}
+.heatmap-wrap{display:grid;grid-template-columns:18px 1fr;gap:7px}
+.weekday-labels{display:grid;grid-template-rows:repeat(7,1fr);gap:5px;color:#829087;font-size:8px}
+.weekday-labels span{display:grid;place-items:center}
+.heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:5px}
+.heat-cell{aspect-ratio:1;border:0;border-radius:4px;padding:0;min-width:0}
+.level-0{background:#29322d}.level-1{background:#294f3c}.level-2{background:#317854}.level-3{background:#49ad75}.level-4{background:#7ce4a1}
+.heat-cell.selected{outline:2px solid #f4f7f3;outline-offset:2px}
+.day-detail{margin-top:17px;padding-top:14px;border-top:1px solid #334139;display:flex;flex-direction:column;gap:6px}
+.day-detail>span{display:flex;align-items:center;justify-content:space-between}
+.day-detail strong{color:#9ee7af;font-size:12px}
+.day-detail small{display:block;color:#a9b4ad;font-size:10px;line-height:1.6}
+.day-detail div{display:grid;gap:4px}
+@media(max-width:370px){.heatmap-card{padding:17px 12px}.heatmap{gap:4px}.heatmap-head{display:block}.heatmap-legend{margin-top:12px;justify-content:flex-end}.month-row{margin-top:14px}}
+.session-actions{display:flex;align-items:center;gap:7px}.session-actions strong{white-space:nowrap}.delete-session{width:25px;height:25px;border:0;border-radius:8px;background:#f4e9e6;color:#a35145;font-size:18px;line-height:1;padding:0}.delete-session:active{background:#e9d0ca}

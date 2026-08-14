@@ -1,0 +1,25 @@
+# Dependencies and local toolchains
+node_modules/
+.android-sdk/
+
+# Generated web bundle
+www/
+
+# Android local and build files
+android/.gradle/
+android/local.properties
+android/**/build/
+android/captures/
+*.apk
+*.aab
+
+# Editors and operating system
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

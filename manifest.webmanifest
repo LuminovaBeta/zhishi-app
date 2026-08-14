@@ -1,0 +1,14 @@
+{
+  "name": "知时 · 学习记录",
+  "short_name": "知时",
+  "description": "轻量、专注的个人学习记录系统",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f8f3",
+  "theme_color": "#f7f8f3",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
