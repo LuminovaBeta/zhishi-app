@@ -182,14 +182,26 @@ function bind(){
     document.querySelector('#day-detail').innerHTML=`<span><b>${el.dataset.day}</b><strong>${minsText(total)}</strong></span>${list.length?`<div>${list.map(s=>`<small>${subjectName(s.subject)} · ${escapeHtml(s.title)} · ${minsText(s.minutes)}</small>`).join('')}</div>`:`<small>${tx('这一天还没有学习记录','No study records on this day')}</small>`}`;
   }));
 }
-function finishSession(){
+function confirmShortSession(elapsed){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div'); overlay.className='confirm-overlay';
+    overlay.innerHTML=`<section class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="short-title"><p class="eyebrow">${tx('时长不足 25 分钟','UNDER 25 MINUTES')}</p><h2 id="short-title">${tx('确定要结束吗？','Finish this session?')}</h2><p>${tx(`目前只学习了 ${elapsed} 分钟，结束后不会保存这次记录。`,`You have studied for ${elapsed} minutes. This session will not be recorded if you finish now.`)}</p><div><button class="confirm-no">No · ${tx('继续学习','Keep studying')}</button><button class="confirm-yes">Yes · ${tx('结束且不记录','Finish without saving')}</button></div></section>`;
+    const close=result=>{document.removeEventListener('keydown',onKey);overlay.remove();resolve(result)};
+    const onKey=event=>{if(event.key==='Escape'||event.key==='Backspace')close(false)};
+    overlay.addEventListener('click',event=>{if(event.target===overlay)close(false)});
+    overlay.querySelector('.confirm-no').onclick=()=>close(false);
+    overlay.querySelector('.confirm-yes').onclick=()=>close(true);
+    document.addEventListener('keydown',onKey); document.body.appendChild(overlay); overlay.querySelector('.confirm-no').focus();
+  });
+}
+async function finishSession(){
   const elapsed=Math.max(1,Math.round((Date.now()-state.active.startedAt)/60000));
   if(elapsed < 25){
+    if(!await confirmShortSession(elapsed))return;
     state.active=null;
     save();
     page='today';
     render();
-    alert(tx(`本次学习时长为 ${elapsed} 分钟，不足 25 分钟，未计入学习记录。`,`This session lasted ${elapsed} minutes. Sessions under 25 minutes are not recorded.`));
     return;
   }
   const title=prompt(tx('这次学了什么？请输入记录标题：','What did you study? Enter a title:')); if(!title)return;
