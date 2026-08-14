@@ -1,4 +1,4 @@
-const CACHE = 'zhishi-v11';
+const CACHE = 'zhishi-v12';
 const ASSETS = ['./', './index.html', './styles.css', './heatmap.css', './theme.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   self.skipWaiting();

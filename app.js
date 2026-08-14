@@ -6,6 +6,7 @@ const subjects = {
 };
 const $app = document.querySelector('#app');
 const state = JSON.parse(localStorage.getItem('zhishi-state') || 'null') || seed();
+let localProfile = JSON.parse(localStorage.getItem('zhishi-profile') || 'null') || {name:'',avatar:''};
 if(!state.seedDataRemoved){
   const seedIds=new Set([1,2,3,4,5]);
   state.sessions=(state.sessions||[]).filter(session=>!seedIds.has(session.id));
@@ -29,6 +30,8 @@ function isEn(){return state.language==='en'}
 function tx(zh,en){return isEn()?en:zh}
 function subjectName(id){return isEn()?subjects[id].en:subjects[id].name}
 function applyTheme(){document.documentElement.dataset.theme=state.theme||'green'}
+function profileName(){return localProfile.name||tx('学习者','Learner')}
+function avatarMarkup(className=''){return localProfile.avatar?`<img class="${className}" src="${localProfile.avatar}" alt="${tx('本地头像','Local avatar')}">`:`<span class="${className}">${escapeHtml((localProfile.name||'竹').trim().slice(0,1).toUpperCase())}</span>`}
 function localDay(date = new Date()) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(date); }
 function minsText(m) { return isEn()?(m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m} min`):(m >= 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分` : `${m} 分钟`); }
 function todaySessions() { return state.sessions.filter(s => s.date === localDay()); }
@@ -37,7 +40,7 @@ function escapeHtml(s='') { return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':
 
 function shell(content) {
   return `<div class="phone-shell">
-    <header class="topbar"><div class="wordmark"><span>${tx('知时','ZHI SHI')}</span><small>LEARNING LOG</small></div><button class="avatar" data-page="profile">竹</button></header>
+    <header class="topbar"><div class="wordmark"><span>${tx('知时','ZHI SHI')}</span><small>LEARNING LOG</small></div><button class="avatar" data-edit-profile aria-label="${tx('编辑本地资料','Edit local profile')}">${avatarMarkup()}</button></header>
     <main>${content}</main>
     <nav class="bottom-nav">
       ${[['today','⌂',tx('今日','Today')],['history','◫',tx('记录','Records')],['add','＋',tx('开始','Start')],['insights','⌁',tx('趋势','Trends')],['profile','○',tx('我的','Me')]].map(([id,icon,label]) =>
@@ -101,7 +104,7 @@ function heatmapView(){
   return `<section class="heatmap-card"><div class="heatmap-head"><div><p class="eyebrow">ACTIVITY / 13 WEEKS</p><h2>${tx('学习活跃度','Study activity')}</h2><p>${tx(`近 13 周共学习 ${days.filter(d=>d.m>0).length} 天，点击日期查看记录。`,`${days.filter(d=>d.m>0).length} active days in the last 13 weeks. Select a day for details.`)}</p></div><div class="heatmap-legend"><span>${tx('少','Less')}</span>${[0,1,2,3,4].map(n=>`<i class="level-${n}"></i>`).join('')}<span>≥ 5h</span></div></div><div class="month-row">${months.map(x=>`<span style="grid-column:${x.col}">${isEn()?['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][x.month]:x.month+'月'}</span>`).join('')}</div><div class="heatmap-wrap"><div class="weekday-labels"><span>${tx('日','S')}</span><span></span><span>${tx('二','T')}</span><span></span><span>${tx('四','T')}</span><span></span><span>${tx('六','S')}</span></div><div class="heatmap" role="grid" aria-label="${tx('近十三周每日学习时长','Daily study time in the last 13 weeks')}">${days.map(d=>`<button class="heat-cell level-${heatLevel(d.m)}" data-day="${d.key}" aria-label="${d.key}，${minsText(d.m)}"></button>`).join('')}</div></div><div id="day-detail" class="day-detail"><span>${tx('选择一个日期','Select a day')}</span><small>${tx('查看当天的学习时长与记录','View study time and sessions')}</small></div></section>`;
 }
 function heatLevel(m){return m===0?0:m<60?1:m<180?2:m<300?3:4}
-function profileView(){return `<section class="profile-hero"><div class="big-avatar">竹</div><h1>${tx('学习者','Learner')}</h1><p>${tx('在自己的节奏里，持续生长。','Keep growing at your own pace.')}</p></section>
+function profileView(){return `<section class="profile-hero"><button class="big-avatar" data-edit-profile aria-label="${tx('编辑本地资料','Edit local profile')}">${avatarMarkup()}</button><h1>${escapeHtml(profileName())}</h1><p>${tx('在自己的节奏里，持续生长。','Keep growing at your own pace.')}</p></section>
   <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button></section><p class="version">${tx('知时','ZHI SHI')} 1.0 · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
 function validateBackup(data){
   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error(tx('备份内容必须是 JSON 对象。','The backup must be a JSON object.'));
@@ -129,6 +132,27 @@ function mergeSessions(current,incoming){
   [...current,...incoming].forEach(s=>unique.set(sessionKey(s),s));
   return [...unique.values()].sort((a,b)=>`${b.date} ${b.start}`.localeCompare(`${a.date} ${a.start}`));
 }
+function compressAvatar(file){
+  return new Promise((resolve,reject)=>{
+    if(!file.type.startsWith('image/'))return reject(new Error(tx('请选择图片文件。','Please select an image file.')));
+    if(file.size>8*1024*1024)return reject(new Error(tx('头像图片不能超过 8 MB。','The avatar image cannot exceed 8 MB.')));
+    const image=new Image(),url=URL.createObjectURL(file);
+    image.onload=()=>{const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d');const side=Math.min(image.width,image.height),sx=(image.width-side)/2,sy=(image.height-side)/2;ctx.drawImage(image,sx,sy,side,side,0,0,size,size);URL.revokeObjectURL(url);resolve(canvas.toDataURL('image/jpeg',.82))};
+    image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error(tx('无法读取这张图片。','Unable to read this image.')))};image.src=url;
+  });
+}
+function openProfileEditor(){
+  const overlay=document.createElement('div');overlay.className='confirm-overlay profile-editor';
+  overlay.innerHTML=`<section class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="profile-title"><p class="eyebrow">LOCAL PROFILE</p><h2 id="profile-title">${tx('编辑用户名和头像','Edit name and avatar')}</h2><div class="profile-preview">${avatarMarkup()}</div><label><span>${tx('用户名','Display name')}</span><input id="profile-name" maxlength="24" value="${escapeHtml(localProfile.name)}" placeholder="${tx('学习者','Learner')}"></label><label class="avatar-file"><span>${tx('选择头像','Choose avatar')}</span><input id="profile-avatar" type="file" accept="image/*"></label><button class="remove-avatar" type="button">${tx('移除头像','Remove avatar')}</button><small>${tx('资料仅保存在本机，不会包含在备份中。','Profile stays on this device and is excluded from backups.')}</small><div class="profile-buttons"><button class="profile-cancel">${tx('取消','Cancel')}</button><button class="profile-save">${tx('保存','Save')}</button></div></section>`;
+  let pendingAvatar=localProfile.avatar;
+  const close=()=>overlay.remove();
+  overlay.addEventListener('click',event=>{if(event.target===overlay)close()});
+  overlay.querySelector('.profile-cancel').onclick=close;
+  overlay.querySelector('.remove-avatar').onclick=()=>{pendingAvatar='';overlay.querySelector('.profile-preview').innerHTML='<span>竹</span>'};
+  overlay.querySelector('#profile-avatar').onchange=async event=>{try{const file=event.target.files?.[0];if(!file)return;pendingAvatar=await compressAvatar(file);overlay.querySelector('.profile-preview').innerHTML=`<img src="${pendingAvatar}" alt="">`}catch(error){alert(error.message)}};
+  overlay.querySelector('.profile-save').onclick=()=>{const name=overlay.querySelector('#profile-name').value.trim();localProfile={name,avatar:pendingAvatar};localStorage.setItem('zhishi-profile',JSON.stringify(localProfile));close();render()};
+  document.body.appendChild(overlay);overlay.querySelector('#profile-name').focus();
+}
 function empty(a,b){return `<div class="empty"><i>○</i><b>${a}</b><p>${b}</p></div>`}
 function streak(){const days=new Set(state.sessions.map(s=>s.date));let n=0,d=new Date();while(days.has(localDay(d))){n++;d.setDate(d.getDate()-1)}return n}
 
@@ -139,6 +163,7 @@ function render(){
 }
 function bind(){
   document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{page=el.dataset.page;render();scrollTo(0,0)});
+  document.querySelectorAll('[data-edit-profile]').forEach(el=>el.onclick=openProfileEditor);
   document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{state.active={subject:el.dataset.subject,startedAt:Date.now()};save();page='today';render()});
   document.querySelector('#finish')?.addEventListener('click',finishSession);
   document.querySelector('#discard')?.addEventListener('click',()=>{if(confirm(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
