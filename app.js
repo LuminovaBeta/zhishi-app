@@ -210,7 +210,7 @@ function bind(){
 function confirmShortSession(elapsed){
   return new Promise(resolve=>{
     const overlay=document.createElement('div'); overlay.className='confirm-overlay';
-    overlay.innerHTML=`<section class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="short-title"><p class="eyebrow">${tx('时长不足 25 分钟','UNDER 25 MINUTES')}</p><h2 id="short-title">${tx('确定要结束吗？','Finish this session?')}</h2><p>${tx(`目前只学习了 ${elapsed} 分钟，结束后不会保存这次记录。`,`You have studied for ${elapsed} minutes. This session will not be recorded if you finish now.`)}</p><div><button class="confirm-no">No</button><button class="confirm-yes">Yes</button></div></section>`;
+    overlay.innerHTML=`<section class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="short-title"><p class="eyebrow">${tx('时长不足 25 分钟','UNDER 25 MINUTES')}</p><h2 id="short-title">${tx('确定要结束吗？','Finish this session?')}</h2><p>${tx(`目前只学习了 ${elapsed} 分钟，结束后不会保存这次记录。`,`You have studied for ${elapsed} minutes. This session will not be recorded if you finish now.`)}</p><div class="short-confirm-buttons"><button class="confirm-yes">Yes</button><button class="confirm-no">No</button></div></section>`;
     const close=result=>{document.removeEventListener('keydown',onKey);overlay.remove();resolve(result)};
     const onKey=event=>{if(event.key==='Escape'||event.key==='Backspace')close(false)};
     overlay.addEventListener('click',event=>{if(event.target===overlay)close(false)});
