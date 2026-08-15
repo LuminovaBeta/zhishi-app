@@ -37,6 +37,28 @@ function minsText(m) { return isEn()?(m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m
 function todaySessions() { return state.sessions.filter(s => s.date === localDay()); }
 function todayMinutes() { return todaySessions().reduce((sum, s) => sum + s.minutes, 0); }
 function escapeHtml(s='') { return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+async function exportData(button){
+  const data=JSON.stringify(state,null,2),native=window.Capacitor?.isNativePlatform?.();
+  button.disabled=true;button.setAttribute('aria-busy','true');
+  try{
+    if(native){
+      const {Filesystem,Share}=window.Capacitor.Plugins||{};
+      if(!Filesystem||!Share)throw new Error('Native export plugins are unavailable');
+      const file=await Filesystem.writeFile({path:'zhishi-study-records.json',directory:'CACHE',encoding:'utf8',data});
+      await Share.share({title:tx('导出学习记录','Export study records'),text:tx('知时学习记录备份','ZHI SHI study records backup'),files:[file.uri],dialogTitle:tx('保存或分享备份','Save or share backup')});
+      return;
+    }
+    const url=URL.createObjectURL(new Blob([data],{type:'application/json;charset=utf-8'}));
+    const link=document.createElement('a');
+    link.href=url;link.download=isEn()?'zhishi-study-records.json':'知时学习记录.json';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(error){
+    console.error('Export failed',error);
+    alert(tx('导出失败，请稍后重试。','Export failed. Please try again.'));
+  }finally{
+    button.disabled=false;button.removeAttribute('aria-busy');
+  }
+}
 
 function shell(content) {
   return `<div class="phone-shell">
@@ -167,17 +189,12 @@ function bind(){
   document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{state.active={subject:el.dataset.subject,startedAt:Date.now()};save();page='today';render()});
   document.querySelector('#finish')?.addEventListener('click',finishSession);
   document.querySelector('#discard')?.addEventListener('click',()=>{if(confirm(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
-  document.querySelectorAll('[data-delete-id]').forEach(button=>button.addEventListener('click',event=>{
-    event.stopPropagation();
-    const id=Number(button.dataset.deleteId),session=state.sessions.find(item=>item.id===id); if(!session)return;
-    if(!confirm(tx(`确定删除“${session.title}”（${minsText(session.minutes)}）吗？此操作无法撤销。`,`Delete “${session.title}” (${minsText(session.minutes)})? This cannot be undone.`)))return;
-    state.sessions=state.sessions.filter(item=>item.id!==id); save(); render();
-  }));
+  bindSessionDeletion();
   document.querySelector('#search')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelector('#history-results').innerHTML=state.sessions.filter(s=>(s.title+s.note).toLowerCase().includes(q)).map(sessionCard).join('')||empty(tx('没有找到记录','No records found'),tx('换个关键词试试。','Try another keyword.'))});
   document.querySelector('#goal')?.addEventListener('change',e=>{state.goal=Number(e.target.value);save()});
   document.querySelector('#theme')?.addEventListener('change',e=>{state.theme=e.target.value;applyTheme();save()});
   document.querySelector('#language')?.addEventListener('click',()=>{state.language=isEn()?'zh':'en';save();document.documentElement.lang=isEn()?'en':'zh-CN';render()});
-  document.querySelector('#export')?.addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download=isEn()?'zhishi-study-records.json':'知时学习记录.json';a.click()});
+  document.querySelector('#export')?.addEventListener('click',event=>exportData(event.currentTarget));
   document.querySelector('#import')?.addEventListener('click',()=>document.querySelector('#import-file').click());
   document.querySelector('#import-file')?.addEventListener('change',async event=>{
     const input=event.target,file=input.files?.[0]; if(!file)return;
@@ -206,6 +223,40 @@ function bind(){
     const list=state.sessions.filter(s=>s.date===el.dataset.day), total=list.reduce((a,s)=>a+s.minutes,0);
     document.querySelector('#day-detail').innerHTML=`<span><b>${el.dataset.day}</b><strong>${minsText(total)}</strong></span>${list.length?`<div>${list.map(s=>`<small>${subjectName(s.subject)} · ${escapeHtml(s.title)} · ${minsText(s.minutes)}</small>`).join('')}</div>`:`<small>${tx('这一天还没有学习记录','No study records on this day')}</small>`}`;
   }));
+}
+function bindSessionDeletion(){
+  let press=null,ignoreNextClick=false;
+  const cancelPress=()=>{if(press?.timer)clearTimeout(press.timer);press=null};
+  const reveal=session=>{
+    document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
+    session.classList.add('delete-enabled');
+    session.querySelector('.delete-session')?.focus({preventScroll:true});
+  };
+  $app.onpointerdown=event=>{
+    const session=event.target.closest('.session');
+    if(!session||event.target.closest('.delete-session')||event.button!==0)return;
+    cancelPress();
+    press={x:event.clientX,y:event.clientY,timer:setTimeout(()=>{reveal(session);ignoreNextClick=true;press=null},550)};
+  };
+  $app.onpointermove=event=>{if(press&&Math.hypot(event.clientX-press.x,event.clientY-press.y)>10)cancelPress()};
+  $app.onpointerup=cancelPress;
+  $app.onpointercancel=cancelPress;
+  $app.oncontextmenu=event=>{
+    const session=event.target.closest('.session');
+    if(!session)return;
+    event.preventDefault();cancelPress();reveal(session);ignoreNextClick=true;
+  };
+  $app.onclick=event=>{
+    const button=event.target.closest('.delete-session');
+    if(button){
+      event.stopPropagation();
+      const id=Number(button.dataset.deleteId),session=state.sessions.find(item=>item.id===id); if(!session)return;
+      if(!confirm(tx(`确定删除“${session.title}”（${minsText(session.minutes)}）吗？此操作无法撤销。`,`Delete “${session.title}” (${minsText(session.minutes)})? This cannot be undone.`)))return;
+      state.sessions=state.sessions.filter(item=>item.id!==id);save();render();return;
+    }
+    if(ignoreNextClick){ignoreNextClick=false;return}
+    document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
+  };
 }
 function confirmShortSession(elapsed){
   return new Promise(resolve=>{

@@ -20,4 +20,4 @@
 .day-detail small{display:block;color:#a9b4ad;font-size:10px;line-height:1.6}
 .day-detail div{display:grid;gap:4px}
 @media(max-width:370px){.heatmap-card{padding:17px 12px}.heatmap{gap:4px}.heatmap-head{display:block}.heatmap-legend{margin-top:12px;justify-content:flex-end}.month-row{margin-top:14px}}
-.session-actions{display:flex;align-items:center;gap:7px}.session-actions strong{white-space:nowrap}.delete-session{width:25px;height:25px;border:0;border-radius:8px;background:#f4e9e6;color:#a35145;font-size:18px;line-height:1;padding:0}.delete-session:active{background:#e9d0ca}
+.session-actions{display:flex;align-items:center;gap:7px}.session-actions strong{white-space:nowrap}.delete-session{display:none;width:25px;height:25px;border:0;border-radius:8px;background:#f4e9e6;color:#a35145;font-size:18px;line-height:1;padding:0}.session.delete-enabled .delete-session{display:block}.delete-session:active{background:#e9d0ca}
