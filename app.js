@@ -101,7 +101,7 @@ function historyView() {
   <label class="search"><span>⌕</span><input id="search" placeholder="${tx('搜索标题或笔记','Search titles or notes')}" /></label>
   <div id="history-results">${Object.entries(groups).sort(([a],[b])=>b.localeCompare(a)).map(([date,items])=>`<section class="date-group"><header><b>${date===localDay()?tx('今天','Today'):date}</b><span>${minsText(items.reduce((a,s)=>a+s.minutes,0))}</span></header>${items.map(sessionCard).join('')}</section>`).join('')}</div>`;
 }
-function sessionCard(s) { const sub=subjects[s.subject]; return `<article class="session" data-id="${s.id}"><i style="--tone:${sub.color}">${sub.icon}</i><div><b>${escapeHtml(s.title)}</b><small>${s.start} · ${subjectName(s.subject)}</small></div><span class="session-actions"><strong>${minsText(s.minutes)}</strong><button class="delete-session" data-delete-id="${s.id}" aria-label="${tx('删除记录','Delete record')}">×</button></span></article>`; }
+function sessionCard(s) { const sub=subjects[s.subject]; return `<article class="session" data-id="${s.id}"><i style="--tone:${sub.color}">${sub.icon}</i><div><b>${escapeHtml(s.title)}</b><small>${s.start} · ${subjectName(s.subject)}</small></div><span class="session-actions"><strong>${minsText(s.minutes)}</strong><button class="view-session" data-view-id="${s.id}" aria-label="${tx('查看记录','View record')}">${tx('查看','View')}</button><button class="delete-session" data-delete-id="${s.id}" aria-label="${tx('删除记录','Delete record')}">×</button></span></article>`; }
 function insightsView() {
   const last7 = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=localDay(d);return {key,label:(isEn()?['S','M','T','W','T','F','S']:'日一二三四五六')[d.getDay()],m:state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0)}});
   const max=Math.max(60,...last7.map(x=>x.m));
@@ -230,11 +230,11 @@ function bindSessionDeletion(){
   const reveal=session=>{
     document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
     session.classList.add('delete-enabled');
-    session.querySelector('.delete-session')?.focus({preventScroll:true});
+    session.querySelector('.view-session')?.focus({preventScroll:true});
   };
   $app.onpointerdown=event=>{
     const session=event.target.closest('.session');
-    if(!session||event.target.closest('.delete-session')||event.button!==0)return;
+    if(!session||event.target.closest('.view-session, .delete-session')||event.button!==0)return;
     cancelPress();
     press={x:event.clientX,y:event.clientY,timer:setTimeout(()=>{reveal(session);ignoreNextClick=true;press=null},550)};
   };
@@ -247,6 +247,13 @@ function bindSessionDeletion(){
     event.preventDefault();cancelPress();reveal(session);ignoreNextClick=true;
   };
   $app.onclick=event=>{
+    const viewButton=event.target.closest('.view-session');
+    if(viewButton){
+      event.stopPropagation();
+      const session=state.sessions.find(item=>item.id===Number(viewButton.dataset.viewId));
+      if(session)openSessionDetail(session);
+      return;
+    }
     const button=event.target.closest('.delete-session');
     if(button){
       event.stopPropagation();
@@ -257,6 +264,16 @@ function bindSessionDeletion(){
     if(ignoreNextClick){ignoreNextClick=false;return}
     document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
   };
+}
+function openSessionDetail(session){
+  const overlay=document.createElement('div'); overlay.className='confirm-overlay session-detail-overlay';
+  const note=session.note?.trim();
+  overlay.innerHTML=`<section class="confirm-box session-detail" role="dialog" aria-modal="true" aria-labelledby="session-detail-title"><p class="eyebrow">${tx('学习详情','SESSION DETAIL')}</p><h2 id="session-detail-title">${escapeHtml(session.title)}</h2><dl><div><dt>${tx('科目','Subject')}</dt><dd>${subjectName(session.subject)}</dd></div><div><dt>${tx('日期','Date')}</dt><dd>${escapeHtml(session.date)}</dd></div><div><dt>${tx('开始时间','Start time')}</dt><dd>${escapeHtml(session.start)}</dd></div><div><dt>${tx('学习时长','Duration')}</dt><dd>${minsText(session.minutes)}</dd></div></dl><div class="session-detail-note"><b>${tx('学习笔记','Study note')}</b><p>${note?escapeHtml(note):tx('未填写笔记','No note added')}</p></div><button class="session-detail-close" type="button">${tx('关闭','Close')}</button></section>`;
+  const close=()=>{document.removeEventListener('keydown',onKey);overlay.remove()};
+  const onKey=event=>{if(event.key==='Escape')close()};
+  overlay.addEventListener('click',event=>{if(event.target===overlay)close()});
+  overlay.querySelector('.session-detail-close').onclick=close;
+  document.addEventListener('keydown',onKey);document.body.appendChild(overlay);overlay.querySelector('.session-detail-close').focus();
 }
 function confirmShortSession(elapsed){
   return new Promise(resolve=>{
