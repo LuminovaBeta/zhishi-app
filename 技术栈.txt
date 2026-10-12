@@ -1,0 +1,49 @@
+知时学习记录项目技术栈
+========================
+
+一、前端 Web
+- HTML5：页面入口与语义化页面结构。
+- CSS3：响应式布局、Flexbox、Grid、CSS 变量、媒体查询、渐变、backdrop-filter、safe-area 环境变量等。
+- 原生 JavaScript（ES Modules）：页面渲染、状态管理、事件处理与业务逻辑；未使用 React、Vue、Angular 等前端框架。
+- Canvas API：用户头像裁剪、缩放及 JPEG 编码。
+- Blob、URL.createObjectURL、File / FileReader API：JSON 学习数据导入、导出与文件下载。
+- Web Storage（localStorage）：在浏览器或 Android WebView 本地保存学习记录、用户资料及设置。
+- 国际化：项目内置中英文界面文案切换。
+
+二、PWA 与离线能力
+- Progressive Web App（PWA）。
+- Web App Manifest（manifest.webmanifest）：独立窗口展示、应用名称、主题色和图标配置。
+- Service Worker（sw.js）：安装时预缓存静态资源，并采用网络优先、缓存回退的离线访问策略。
+- Cache Storage API：管理 PWA 离线资源缓存。
+- beforeinstallprompt Web API：支持浏览器安装到手机主屏幕。
+
+三、移动端封装
+- Capacitor 8：将 Web 应用封装为 Android 原生应用，并提供 Web 与原生能力桥接。
+- @capacitor/core 8.5.0。
+- @capacitor/android 8.5.0。
+- @capacitor/filesystem 8.1.2：原生端将 JSON 备份写入缓存目录。
+- @capacitor/share 8.0.1：调用 Android 系统分享/保存界面导出备份。
+- Android WebView：承载本地 Web 资源。
+
+四、Android 原生与构建
+- Android 原生层：Java（MainActivity 继承 Capacitor BridgeActivity）。
+- Android SDK：minSdk 24、compileSdk 36、targetSdk 36。
+- Java 21：Android 工程的 source / target compatibility。
+- Gradle 8.14.3（Gradle Wrapper）。
+- Android Gradle Plugin 8.13.0。
+- AndroidX：AppCompat 1.7.1、CoordinatorLayout 1.3.0、Core SplashScreen 1.2.0；并包含 AndroidX JUnit 和 Espresso 测试依赖。
+- FileProvider：为原生文件分享提供安全的文件 URI。
+
+五、工程化与依赖管理
+- Node.js（README 要求 20+）与 npm：管理 Capacitor 依赖和构建脚本。
+- package-lock.json：锁定 npm 依赖版本。
+- PowerShell：scripts/sync-web.ps1 将 Web 静态资源复制到 www/，再执行 Capacitor Android 同步。
+- npm scripts：android:sync、android:build。
+
+六、数据、网络与部署形态
+- 数据格式：JSON（本地持久化与备份迁移）。
+- 架构：纯前端、离线优先、无后端服务、无数据库服务、无账号系统。
+- 发布形态：静态 Web/PWA，以及 Android APK。
+- 本地预览可使用任意静态 HTTP 服务器（README 示例为 Python 的 http.server；Python 不是项目运行时依赖）。
+
+说明：以上根据 package.json、Capacitor/Android 配置、构建脚本及实际源码调用整理，版本以当前工程配置为准。
