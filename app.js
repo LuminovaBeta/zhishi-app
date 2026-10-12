@@ -1,8 +1,8 @@
 const defaultCategories = [
-  {id:'math',name:'数学',color:'#d8ed62'},
-  {id:'english',name:'英语',color:'#9ccde8'},
-  {id:'major',name:'专业课',color:'#efad7f'},
-  {id:'training',name:'政治',color:'#c7afd9'}
+  {id:'math',name:'数学',en:'Mathematics',color:'#d8ed62'},
+  {id:'english',name:'英语',en:'English',color:'#9ccde8'},
+  {id:'major',name:'专业课',en:'Major',color:'#efad7f'},
+  {id:'training',name:'政治',en:'Politics',color:'#c7afd9'}
 ];
 const legacyCategoryIcons={math:'∑',english:'Aa',major:'◇',training:'政'};
 const categoryPresetColors=[
@@ -51,7 +51,8 @@ function setCategoryArchived(id,archived){
   const category=categoryById(id);if(!category)return;
   category.archived=archived;save();
 }
-function subjectName(id){return categoryById(id)?.name||tx('未分类','Uncategorized')}
+function categoryName(category){return category?(isEn()&&category.en?.trim()?category.en:category.name):tx('未分类','Uncategorized')}
+function subjectName(id){return categoryName(categoryById(id))}
 function categoryColor(id){return categoryById(id)?.color||'#d9ddd8'}
 function categoryIcon(id){const category=categoryById(id);return legacyCategoryIcons[id]||category?.name.trim().slice(0,1).toUpperCase()||'—'}
 function applyTheme(){document.documentElement.dataset.theme=state.theme||'green'}
@@ -123,7 +124,7 @@ function activeCard() {
 function addView() {
   if (state.active) return `<section class="page-title"><p class="eyebrow">FOCUS MODE</p><h1>${tx('保持专注','Stay focused')}</h1><p>${tx('时间正在安静地积累。','Your focused time is quietly adding up.')}</p></section>${activeCard()}<button class="danger-link" id="discard">${tx('放弃本次记录','Discard session')}</button>`;
   return `<section class="page-title"><p class="eyebrow">NEW SESSION</p><h1>${tx('现在学什么？','What will you study?')}</h1><p>${tx('选择一个方向，计时会立即开始。','Choose a subject to start timing.')}</p></section>
-  <div class="subject-grid"><button class="subject-card" data-subject="" style="--tone:#d9ddd8"><i>—</i><b>${tx('未分类','Uncategorized')}</b><small>${tx('开始专注','Start focus')} →</small></button>${availableCategories().map(category=>`<button class="subject-card" data-subject="${category.id}" style="--tone:${category.color}"><i>${escapeHtml(categoryIcon(category.id))}</i><b>${escapeHtml(category.name)}</b><small>${tx('开始专注','Start focus')} →</small></button>`).join('')}</div>
+  <div class="subject-grid"><button class="subject-card" data-subject="" style="--tone:#d9ddd8"><i>—</i><b>${tx('未分类','Uncategorized')}</b><small>${tx('开始专注','Start focus')} →</small></button>${availableCategories().map(category=>`<button class="subject-card" data-subject="${category.id}" style="--tone:${category.color}"><i>${escapeHtml(categoryIcon(category.id))}</i><b>${escapeHtml(subjectName(category.id))}</b><small>${tx('开始专注','Start focus')} →</small></button>`).join('')}</div>
   <aside class="soft-note"><i>◎</i><p><b>${tx('专注计时','Focus timer')}</b><br>${tx('进行中不会展示时长，帮你把注意力留在学习本身。','The timer stays hidden so your attention remains on learning.')}</p></aside>`;
 }
 function historyView() {
@@ -136,7 +137,7 @@ function sessionCard(s) { return `<article class="session" data-id="${s.id}" tab
 function insightsView() {
   const last7 = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=localDay(d);return {key,label:(isEn()?['S','M','T','W','T','F','S']:'日一二三四五六')[d.getDay()],m:state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0)}});
   const max=Math.max(60,...last7.map(x=>x.m));
-  const totals=[...state.categories.map(category=>({id:category.id,name:category.name,color:category.color})),{id:null,name:tx('未分类','Uncategorized'),color:'#d9ddd8'}].map(category=>({...category,m:state.sessions.filter(s=>s.subject===category.id).reduce((a,s)=>a+s.minutes,0)}));
+  const totals=[...state.categories.map(category=>({id:category.id,name:subjectName(category.id),color:category.color})),{id:null,name:tx('未分类','Uncategorized'),color:'#d9ddd8'}].map(category=>({...category,m:state.sessions.filter(s=>s.subject===category.id).reduce((a,s)=>a+s.minutes,0)}));
   return `<section class="page-title compact"><p class="eyebrow">INSIGHTS</p><h1>${tx('学习趋势','Study trends')}</h1><p>${tx('理解时间如何被使用。','See how your time is being used.')}</p></section>
   <section class="stat-row"><div><small>${tx('本周学习','This week')}</small><b>${minsText(last7.reduce((a,x)=>a+x.m,0))}</b></div><div><small>${tx('连续学习','Study streak')}</small><b>${streak()} ${tx('天','days')}</b></div></section>
   <section class="chart-card"><div class="section-head"><div><p class="eyebrow">LAST 7 DAYS</p><h2>${tx('一周节奏','Weekly rhythm')}</h2></div></div><div class="bars">${last7.map(x=>`<div><span>${x.m?Math.round(x.m/60*10)/10:''}</span><i style="height:${Math.max(6,x.m/max*140)}px"></i><small>${x.label}</small></div>`).join('')}</div></section>
@@ -173,7 +174,8 @@ function validateBackup(data){
     const id=String(category.id||''),name=String(category.name||'').trim(),color=String(category.color||'');
     if(!/^[a-z0-9_-]{1,64}$/i.test(id)||categoryIds.has(id)||!name||name.length>24||!/^#[0-9a-f]{6}$/i.test(color))throw new Error(tx(`第 ${index+1} 个分类的名称或颜色无效。`,`Category ${index+1} has an invalid name or color.`));
     if(category.archived!==undefined&&typeof category.archived!=='boolean')throw new Error(tx(`第 ${index+1} 个分类的归档状态无效。`,`Category ${index+1} has an invalid archive status.`));
-    categoryIds.add(id);return {id,name,color,archived:category.archived===true};
+    if(category.en!==undefined&&(typeof category.en!=='string'||category.en.trim().length>48))throw new Error(tx(`第 ${index+1} 个分类的英文名称无效。`,`Category ${index+1} has an invalid English name.`));
+    categoryIds.add(id);return {id,name,en:category.en?.trim()||'',color,archived:category.archived===true};
   });
   const datePattern=/^\d{4}-\d{2}-\d{2}$/, timePattern=/^\d{2}:\d{2}$/;
   const sessions=data.sessions.map((s,index)=>{
@@ -224,7 +226,7 @@ function openCategoryManager(archived=false){
   const overlay=document.createElement('div');overlay.className='confirm-overlay category-manager-overlay';
   const categories=state.categories.filter(category=>!!category.archived===archived);
   const archivedCount=state.categories.filter(category=>category.archived).length;
-  const rows=categories.map(category=>`<div class="category-row ${archived?'archived-category-row':'active-category-row'}"><i style="--category-color:${category.color}"></i><b>${escapeHtml(category.name)}</b>${archived?`<button type="button" data-category-restore="${category.id}">${tx('恢复','Restore')}</button>`:`<button type="button" data-category-edit="${category.id}">${tx('编辑','Edit')}</button><button type="button" data-category-archive="${category.id}">${tx('归档','Archive')}</button><button class="category-delete" type="button" data-category-delete="${category.id}" aria-label="${tx('删除分类','Delete category')}">×</button>`}</div>`).join('');
+  const rows=categories.map(category=>`<div class="category-row ${archived?'archived-category-row':'active-category-row'}"><i style="--category-color:${category.color}"></i><b>${escapeHtml(subjectName(category.id))}</b>${archived?`<button type="button" data-category-restore="${category.id}">${tx('恢复','Restore')}</button>`:`<button type="button" data-category-edit="${category.id}">${tx('编辑','Edit')}</button><button type="button" data-category-archive="${category.id}">${tx('归档','Archive')}</button><button class="category-delete" type="button" data-category-delete="${category.id}" aria-label="${tx('删除分类','Delete category')}">×</button>`}</div>`).join('');
   overlay.innerHTML=`<section class="confirm-box category-manager" role="dialog" aria-modal="true" aria-labelledby="category-manager-title"><p class="eyebrow">${tx('分类管理','CATEGORY MANAGEMENT')}</p><h2 id="category-manager-title">${archived?tx('已归档分类','Archived categories'):tx('分类管理','Category management')}</h2><p>${archived?tx('历史记录和统计保留原分类，恢复后可用于新的专注。','Past records and statistics keep their categories. Restore a category to use it for new sessions.'):tx('归档后不再用于新专注，历史记录和统计保留原分类。删除则将记录改为“未分类”。','Archive to hide a category from new sessions while keeping its history. Delete to make its records uncategorized.')}</p><div class="category-list">${rows||`<p>${archived?tx('暂无已归档分类','No archived categories'):tx('还没有可用分类','No available categories')}</p>`}</div>${archived?`<button class="category-back" type="button">← ${tx('返回分类管理','Back to category management')}</button>`:`<button class="category-add" type="button">＋ ${tx('新增分类','Add category')}</button><button class="category-archived" type="button">${tx('已归档分类','Archived categories')} · ${archivedCount} ›</button>`}<button class="category-close" type="button">${tx('关闭','Close')}</button></section>`;
   const close=()=>overlay.remove();overlay.addEventListener('click',event=>{if(event.target===overlay)close()});overlay.querySelector('.category-close').onclick=close;
   const refresh=()=>{close();render();openCategoryManager(archived)};
@@ -242,7 +244,7 @@ function openCategoryManager(archived=false){
   overlay.querySelectorAll('[data-category-edit]').forEach(button=>button.onclick=()=>{const category=categoryById(button.dataset.categoryEdit);close();if(category)openCategoryEditor(category)});
   overlay.querySelectorAll('[data-category-delete]').forEach(button=>button.onclick=()=>{
     const category=categoryById(button.dataset.categoryDelete);if(!category)return;
-    if(!confirm(tx(`确定删除分类“${category.name}”吗？历史记录将保留并改为“未分类”。`,`Delete “${category.name}”? Past records will be kept as uncategorized.`)))return;
+    if(!confirm(tx(`确定删除分类“${category.name}”吗？历史记录将保留并改为“未分类”。`,`Delete “${subjectName(category.id)}”? Past records will be kept as uncategorized.`)))return;
     state.categories=state.categories.filter(item=>item.id!==category.id);state.sessions.forEach(session=>{if(session.subject===category.id)session.subject=null});if(state.active?.subject===category.id)state.active.subject=null;save();close();render();openCategoryManager();
   });
   document.body.appendChild(overlay);overlay.querySelector(archived?'.category-back':'.category-add').focus();
@@ -250,7 +252,7 @@ function openCategoryManager(archived=false){
 function confirmCategoryArchive(category,archived,onConfirm,parent,trigger){
   if(document.querySelector('.category-confirm-overlay'))return;
   const overlay=document.createElement('div');overlay.className='confirm-overlay category-confirm-overlay';
-  const title=archived?tx(`归档“${category.name}”？`,`Archive “${category.name}”?`):tx(`恢复“${category.name}”？`,`Restore “${category.name}”?`);
+  const title=archived?tx(`归档“${subjectName(category.id)}”？`,`Archive “${subjectName(category.id)}”?`):tx(`恢复“${subjectName(category.id)}”？`,`Restore “${subjectName(category.id)}”?`);
   overlay.innerHTML=`<section class="confirm-box category-confirm" role="alertdialog" aria-modal="true" aria-labelledby="category-confirm-title" aria-describedby="category-confirm-description"><p class="eyebrow">${tx('分类管理','CATEGORY MANAGEMENT')}</p><h2 id="category-confirm-title">${escapeHtml(title)}</h2><p id="category-confirm-description">${archived?tx('该分类将从新专注选择中隐藏。历史记录和统计仍会保留，之后可以恢复。','This category will be hidden from new sessions. Past records and statistics will be kept. You can restore it later.'):tx('恢复后，该分类会重新出现在新专注选择中。','This category will be available for new focus sessions again.')}</p><div class="category-confirm-actions"><button class="category-confirm-cancel" type="button">${tx('取消','Cancel')}</button><button class="category-confirm-accept" type="button">${archived?tx('确认归档','Confirm archive'):tx('确认恢复','Confirm restore')}</button></div></section>`;
   const cancel=overlay.querySelector('.category-confirm-cancel'),accept=overlay.querySelector('.category-confirm-accept');
   let closed=false;
@@ -267,11 +269,11 @@ function openCategoryEditor(category=null){
   const overlay=document.createElement('div');overlay.className='confirm-overlay category-editor-overlay';
   const selectedColor=(category?.color||'#4F7CFF').toUpperCase();
   const presets=categoryPresetColors.map(([zh,en,color])=>`<button class="color-preset ${selectedColor===color?'selected':''}" type="button" data-color="${color}" title="${tx(zh,en)} ${color}" aria-label="${tx(zh,en)} ${color}" style="--preset-color:${color}"></button>`).join('');
-  overlay.innerHTML=`<section class="confirm-box category-editor" role="dialog" aria-modal="true" aria-labelledby="category-editor-title"><p class="eyebrow">${category?tx('编辑分类','EDIT CATEGORY'):tx('新增分类','NEW CATEGORY')}</p><h2 id="category-editor-title">${category?tx('修改分类','Update category'):tx('创建分类','Create category')}</h2><form><label><span>${tx('名称','Name')}</span><input name="name" maxlength="24" required value="${escapeHtml(category?.name||'')}" placeholder="${tx('例如：物理','For example: Physics')}"></label><fieldset><legend>${tx('预设颜色','Preset colors')}</legend><div class="color-presets">${presets}</div></fieldset><label><span>${tx('自定义颜色','Custom color')}</span><input name="color" type="color" value="${selectedColor}"></label><p class="form-error" aria-live="polite"></p><div class="category-form-buttons"><button class="category-cancel" type="button">${tx('取消','Cancel')}</button><button class="category-save" type="submit">${tx('保存','Save')}</button></div></form></section>`;
+  overlay.innerHTML=`<section class="confirm-box category-editor" role="dialog" aria-modal="true" aria-labelledby="category-editor-title"><p class="eyebrow">${category?tx('编辑分类','EDIT CATEGORY'):tx('新增分类','NEW CATEGORY')}</p><h2 id="category-editor-title">${category?tx('修改分类','Update category'):tx('创建分类','Create category')}</h2><form><label><span>${tx('名称','Name')}</span><input name="name" maxlength="24" required value="${escapeHtml(category?.name||'')}" placeholder="${tx('例如：物理','For example: Physics')}"></label><label><span>${tx('英文名称（可选）','English name (optional)')}</span><input name="en" maxlength="48" value="${escapeHtml(category?.en||'')}" placeholder="${tx('例如：Physics；留空使用原名称','For example: Physics; blank uses the original name')}"></label><fieldset><legend>${tx('预设颜色','Preset colors')}</legend><div class="color-presets">${presets}</div></fieldset><label><span>${tx('自定义颜色','Custom color')}</span><input name="color" type="color" value="${selectedColor}"></label><p class="form-error" aria-live="polite"></p><div class="category-form-buttons"><button class="category-cancel" type="button">${tx('取消','Cancel')}</button><button class="category-save" type="submit">${tx('保存','Save')}</button></div></form></section>`;
   const close=()=>overlay.remove();overlay.addEventListener('click',event=>{if(event.target===overlay)close()});overlay.querySelector('.category-cancel').onclick=()=>{close();openCategoryManager()};
   const colorInput=overlay.querySelector('[name="color"]'),syncPreset=()=>{overlay.querySelectorAll('.color-preset').forEach(button=>button.classList.toggle('selected',button.dataset.color.toLowerCase()===colorInput.value.toLowerCase()))};
   overlay.querySelectorAll('.color-preset').forEach(button=>button.onclick=()=>{colorInput.value=button.dataset.color;syncPreset()});colorInput.oninput=syncPreset;
-  overlay.querySelector('form').onsubmit=event=>{event.preventDefault();const form=new FormData(event.currentTarget),name=String(form.get('name')||'').trim(),color=String(form.get('color')||''),error=overlay.querySelector('.form-error');if(!name){error.textContent=tx('请输入分类名称。','Enter a category name.');return}if(state.categories.some(item=>item.id!==category?.id&&item.name.toLowerCase()===name.toLowerCase())){error.textContent=tx('分类名称不能重复。','Category names must be unique.');return}if(category){category.name=name;category.color=color}else{state.categories.push({id:`category-${Date.now().toString(36)}`,name,color})}save();close();render();openCategoryManager()};
+  overlay.querySelector('form').onsubmit=event=>{event.preventDefault();const form=new FormData(event.currentTarget),name=String(form.get('name')||'').trim(),en=String(form.get('en')||'').trim(),color=String(form.get('color')||''),error=overlay.querySelector('.form-error');if(!name){error.textContent=tx('请输入分类名称。','Enter a category name.');return}if(en.length>48){error.textContent=tx('英文名称最多 48 个字符。','English names must be at most 48 characters.');return}if(state.categories.some(item=>item.id!==category?.id&&item.name.toLowerCase()===name.toLowerCase())){error.textContent=tx('分类名称不能重复。','Category names must be unique.');return}if(category){category.name=name;category.en=en;category.color=color}else{state.categories.push({id:`category-${Date.now().toString(36)}`,name,en,color})}save();close();render();openCategoryManager()};
   document.body.appendChild(overlay);overlay.querySelector('[name="name"]').focus();
 }
 function empty(a,b){return `<div class="empty"><i>○</i><b>${a}</b><p>${b}</p></div>`}
@@ -392,7 +394,7 @@ function openSessionDetail(session){
   document.addEventListener('keydown',onKey);document.body.appendChild(overlay);overlay.querySelector('.session-detail-close').focus();
 }
 function sessionFormMarkup(session,mode){
-  const options=`<option value="" ${session.subject?'' :'selected'}>${tx('未分类','Uncategorized')}</option>`+state.categories.filter(category=>!category.archived||category.id===session.subject).map(category=>`<option value="${category.id}" ${session.subject===category.id?'selected':''}>${escapeHtml(category.name)}${category.archived?tx('（已归档）',' (archived)'):''}</option>`).join('');
+  const options=`<option value="" ${session.subject?'' :'selected'}>${tx('未分类','Uncategorized')}</option>`+state.categories.filter(category=>!category.archived||category.id===session.subject).map(category=>`<option value="${category.id}" ${session.subject===category.id?'selected':''}>${escapeHtml(subjectName(category.id))}${category.archived?tx('（已归档）',' (archived)'):''}</option>`).join('');
   return `<section class="confirm-box record-form" role="dialog" aria-modal="true" aria-labelledby="record-form-title"><p class="eyebrow">${mode==='edit'?tx('编辑记录','EDIT RECORD'):tx('完成学习','FINISH SESSION')}</p><h2 id="record-form-title">${mode==='edit'?tx('修改这次学习','Update this session'):tx('记录这次收获','Record your progress')}</h2>${mode==='finish'?`<p>${tx('有效学习','Focused time')}：<b>${minsText(session.minutes)}</b></p>`:''}<form><label><span>${tx('分类（可选）','Category (optional)')}</span><select name="subject">${options}</select></label><label><span>${tx('学习标题','Title')}</span><input name="title" maxlength="80" required value="${escapeHtml(session.title||'')}" placeholder="${tx('这次学了什么？','What did you study?')}"></label><div class="form-row"><label><span>${tx('日期','Date')}</span><input name="date" type="date" required value="${escapeHtml(session.date)}"></label><label><span>${tx('开始时间','Start time')}</span><input name="start" type="time" required value="${escapeHtml(session.start)}"></label></div><label><span>${tx('学习时长（分钟）','Duration (minutes)')}</span><input name="minutes" type="number" min="1" max="720" required value="${session.minutes}"></label><label><span>${tx('学习笔记','Study note')}</span><textarea name="note" maxlength="2000" rows="4" placeholder="${tx('写下一点收获（可选）','Add a takeaway (optional)')}">${escapeHtml(session.note||'')}</textarea></label><p class="form-error" aria-live="polite"></p><div class="form-buttons"><button class="form-cancel" type="button">${mode==='finish'?tx('返回学习','Back to session'):tx('取消','Cancel')}</button><button class="form-save" type="submit">${mode==='finish'?tx('保存记录','Save record'):tx('保存修改','Save changes')}</button></div></form></section>`;
 }
 function openSessionEditor(session){openRecordForm({...session},'edit')}
