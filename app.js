@@ -18,6 +18,13 @@ let timerTick;
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', event=>{event.preventDefault();installPrompt=event});
 
+if(state.active){
+  state.active.status=state.active.status==='paused'?'paused':'running';
+  state.active.accumulatedMs=Math.max(0,Number(state.active.accumulatedMs)||0);
+  state.active.segmentStartedAt=state.active.status==='running'?(Number(state.active.segmentStartedAt)||Number(state.active.startedAt)||Date.now()):null;
+  state.active.pausedAt=state.active.status==='paused'?(Number(state.active.pausedAt)||Date.now()):null;
+}
+
 function seed() {
   return {
     goal: 300, language: 'zh', theme: 'green', seedDataRemoved: true,
@@ -37,6 +44,12 @@ function minsText(m) { return isEn()?(m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m
 function todaySessions() { return state.sessions.filter(s => s.date === localDay()); }
 function todayMinutes() { return todaySessions().reduce((sum, s) => sum + s.minutes, 0); }
 function escapeHtml(s='') { return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function activeElapsedMs(now=Date.now()){
+  if(!state.active)return 0;
+  const current=state.active.status==='running'?Math.max(0,now-state.active.segmentStartedAt):0;
+  return Math.max(0,state.active.accumulatedMs+current);
+}
+function activeElapsedMinutes(){return Math.max(1,Math.round(activeElapsedMs()/60000))}
 async function exportData(button){
   const data=JSON.stringify(state,null,2),native=window.Capacitor?.isNativePlatform?.();
   button.disabled=true;button.setAttribute('aria-busy','true');
@@ -86,8 +99,8 @@ function todayView() {
   <div class="session-list">${recent.length ? recent.map(sessionCard).join('') : empty(tx('今天还没有完成记录','No records yet today'),tx('开始一次专注，让今天留下痕迹。','Start a session and make today count.'))}</div>`;
 }
 function activeCard() {
-  const sub=subjects[state.active.subject];
-  return `<section class="active-card"><div><p class="eyebrow">${tx('正在学习','STUDYING')} · ${subjectName(state.active.subject)}</p><h2 id="timer">${tx('专注进行中','Focus in progress')}</h2><small>${tx('计时已隐藏，结束后才会显示时长','Duration stays hidden until you finish')}</small></div><button id="finish">${tx('完成','Finish')}</button></section>`;
+  const paused=state.active.status==='paused';
+  return `<section class="active-card ${paused?'is-paused':''}"><div><p class="eyebrow">${paused?tx('已暂停','PAUSED'):tx('正在学习','STUDYING')} · ${subjectName(state.active.subject)}</p><h2 id="timer">${paused?tx('休息一下，再继续','Take a breath'):tx('专注进行中','Focus in progress')}</h2><small>${paused?tx('暂停时间不会计入学习时长','Paused time is not counted'):tx('计时已隐藏，结束后才会显示时长','Duration stays hidden until you finish')}</small></div><div class="active-actions"><button id="toggle-pause" class="pause-button">${paused?tx('继续','Resume'):tx('暂停','Pause')}</button><button id="finish">${tx('完成','Finish')}</button></div></section>`;
 }
 function addView() {
   if (state.active) return `<section class="page-title"><p class="eyebrow">FOCUS MODE</p><h1>${tx('保持专注','Stay focused')}</h1><p>${tx('时间正在安静地积累。','Your focused time is quietly adding up.')}</p></section>${activeCard()}<button class="danger-link" id="discard">${tx('放弃本次记录','Discard session')}</button>`;
@@ -101,7 +114,7 @@ function historyView() {
   <label class="search"><span>⌕</span><input id="search" placeholder="${tx('搜索标题或笔记','Search titles or notes')}" /></label>
   <div id="history-results">${Object.entries(groups).sort(([a],[b])=>b.localeCompare(a)).map(([date,items])=>`<section class="date-group"><header><b>${date===localDay()?tx('今天','Today'):date}</b><span>${minsText(items.reduce((a,s)=>a+s.minutes,0))}</span></header>${items.map(sessionCard).join('')}</section>`).join('')}</div>`;
 }
-function sessionCard(s) { const sub=subjects[s.subject]; return `<article class="session" data-id="${s.id}"><i style="--tone:${sub.color}">${sub.icon}</i><div><b>${escapeHtml(s.title)}</b><small>${s.start} · ${subjectName(s.subject)}</small></div><span class="session-actions"><strong>${minsText(s.minutes)}</strong><button class="view-session" data-view-id="${s.id}" aria-label="${tx('查看记录','View record')}">${tx('查看','View')}</button><button class="delete-session" data-delete-id="${s.id}" aria-label="${tx('删除记录','Delete record')}">×</button></span></article>`; }
+function sessionCard(s) { const sub=subjects[s.subject]; return `<article class="session" data-id="${s.id}" tabindex="0" aria-label="${tx('查看记录','View record')}：${escapeHtml(s.title)}"><i style="--tone:${sub.color}">${sub.icon}</i><div><b>${escapeHtml(s.title)}</b><small>${s.start} · ${subjectName(s.subject)}</small></div><span class="session-actions"><strong>${minsText(s.minutes)}</strong><button class="view-session" data-view-id="${s.id}">${tx('查看','View')}</button><button class="edit-session" data-edit-id="${s.id}">${tx('编辑','Edit')}</button><button class="delete-session" data-delete-id="${s.id}" aria-label="${tx('删除记录','Delete record')}">×</button></span></article>`; }
 function insightsView() {
   const last7 = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=localDay(d);return {key,label:(isEn()?['S','M','T','W','T','F','S']:'日一二三四五六')[d.getDay()],m:state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0)}});
   const max=Math.max(60,...last7.map(x=>x.m));
@@ -127,13 +140,13 @@ function heatmapView(){
 }
 function heatLevel(m){return m===0?0:m<60?1:m<180?2:m<300?3:4}
 function profileView(){return `<section class="profile-hero"><div class="big-avatar">${avatarMarkup()}</div><h1>${escapeHtml(profileName())}</h1><p>${tx('在自己的节奏里，持续生长。','Keep growing at your own pace.')}</p></section>
-  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button></section><p class="version">${tx('知时','ZHI SHI')} 1.0 · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
+  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="warm-orange" ${state.theme==='warm-orange'?'selected':''}>${tx('暖橙','Warm Orange')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button></section><p class="version">${tx('知时','ZHI SHI')} 1.0 · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
 function validateBackup(data){
   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error(tx('备份内容必须是 JSON 对象。','The backup must be a JSON object.'));
   if(!Array.isArray(data.sessions))throw new Error(tx('缺少有效的 sessions 学习记录列表。','A valid sessions list is required.'));
   if(!Number.isInteger(data.goal)||data.goal<25||data.goal>1440)throw new Error(tx('每日目标 goal 必须是 25–1440 之间的整数。','The daily goal must be an integer between 25 and 1440.'));
   if(data.language!==undefined&&!['zh','en'].includes(data.language))throw new Error(tx('language 只能是 zh 或 en。','Language must be zh or en.'));
-  if(data.theme!==undefined&&!['green','bili-pink','youtube-red','bili-blue','apple-white'].includes(data.theme))throw new Error(tx('备份中的主题配色无效。','The backup contains an invalid theme.'));
+  if(data.theme!==undefined&&!['green','bili-pink','youtube-red','bili-blue','warm-orange','apple-white'].includes(data.theme))throw new Error(tx('备份中的主题配色无效。','The backup contains an invalid theme.'));
   const allowed=Object.keys(subjects), datePattern=/^\d{4}-\d{2}-\d{2}$/, timePattern=/^\d{2}:\d{2}$/;
   const sessions=data.sessions.map((s,index)=>{
     const row=index+1;
@@ -141,10 +154,10 @@ function validateBackup(data){
     if(!allowed.includes(s.subject))throw new Error(tx(`第 ${row} 条记录的科目无效。`,`Session ${row} has an invalid subject.`));
     if(typeof s.title!=='string'||!s.title.trim())throw new Error(tx(`第 ${row} 条记录缺少标题。`,`Session ${row} has no title.`));
     if(s.note!==undefined&&typeof s.note!=='string')throw new Error(tx(`第 ${row} 条记录的笔记格式无效。`,`Session ${row} has an invalid note.`));
-    if(!Number.isInteger(s.minutes)||s.minutes<25||s.minutes>720)throw new Error(tx(`第 ${row} 条记录的时长必须为 25–720 分钟。`,`Session ${row} duration must be 25–720 minutes.`));
+    if(!Number.isInteger(s.minutes)||s.minutes<1||s.minutes>720)throw new Error(tx(`第 ${row} 条记录的时长必须为 1–720 分钟。`,`Session ${row} duration must be 1–720 minutes.`));
     if(typeof s.date!=='string'||!datePattern.test(s.date)||Number.isNaN(Date.parse(`${s.date}T00:00:00`)))throw new Error(tx(`第 ${row} 条记录的日期无效。`,`Session ${row} has an invalid date.`));
     if(typeof s.start!=='string'||!timePattern.test(s.start))throw new Error(tx(`第 ${row} 条记录的开始时间无效。`,`Session ${row} has an invalid start time.`));
-    return {id:Number.isFinite(Number(s.id))?Number(s.id):Date.now()+index,subject:s.subject,title:s.title.trim(),note:s.note||'',minutes:s.minutes,date:s.date,start:s.start};
+    return {id:Number.isFinite(Number(s.id))?Number(s.id):Date.now()+index,subject:s.subject,title:s.title.trim(),note:s.note||'',minutes:s.minutes,date:s.date,start:s.start,...(Number.isFinite(Number(s.createdAt))?{createdAt:Number(s.createdAt)}:{}),...(Number.isFinite(Number(s.updatedAt))?{updatedAt:Number(s.updatedAt)}:{})};
   });
   return {goal:data.goal,language:data.language||'zh',theme:data.theme||'green',seedDataRemoved:true,active:null,sessions};
 }
@@ -186,7 +199,8 @@ function render(){
 function bind(){
   document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{page=el.dataset.page;render();scrollTo(0,0)});
   document.querySelectorAll('[data-edit-profile]').forEach(el=>el.onclick=openProfileEditor);
-  document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{state.active={subject:el.dataset.subject,startedAt:Date.now()};save();page='today';render()});
+  document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{const now=Date.now();state.active={subject:el.dataset.subject,startedAt:now,status:'running',segmentStartedAt:now,accumulatedMs:0,pausedAt:null};save();page='today';render()});
+  document.querySelector('#toggle-pause')?.addEventListener('click',togglePause);
   document.querySelector('#finish')?.addEventListener('click',finishSession);
   document.querySelector('#discard')?.addEventListener('click',()=>{if(confirm(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
   bindSessionDeletion();
@@ -234,7 +248,7 @@ function bindSessionDeletion(){
   };
   $app.onpointerdown=event=>{
     const session=event.target.closest('.session');
-    if(!session||event.target.closest('.view-session, .delete-session')||event.button!==0)return;
+    if(!session||event.target.closest('.view-session, .edit-session, .delete-session')||event.button!==0)return;
     cancelPress();
     press={x:event.clientX,y:event.clientY,timer:setTimeout(()=>{reveal(session);ignoreNextClick=true;press=null},550)};
   };
@@ -254,6 +268,13 @@ function bindSessionDeletion(){
       if(session)openSessionDetail(session);
       return;
     }
+    const editButton=event.target.closest('.edit-session');
+    if(editButton){
+      event.stopPropagation();
+      const session=state.sessions.find(item=>item.id===Number(editButton.dataset.editId));
+      if(session)openSessionEditor(session);
+      return;
+    }
     const button=event.target.closest('.delete-session');
     if(button){
       event.stopPropagation();
@@ -262,7 +283,13 @@ function bindSessionDeletion(){
       state.sessions=state.sessions.filter(item=>item.id!==id);save();render();return;
     }
     if(ignoreNextClick){ignoreNextClick=false;return}
+    const sessionEl=event.target.closest('.session');
+    if(sessionEl){const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));if(session)openSessionDetail(session);return}
     document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
+  };
+  $app.onkeydown=event=>{
+    const sessionEl=event.target.closest('.session');
+    if(sessionEl&&(event.key==='Enter'||event.key===' ')){event.preventDefault();const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));if(session)openSessionDetail(session)}
   };
 }
 function openSessionDetail(session){
@@ -274,6 +301,33 @@ function openSessionDetail(session){
   overlay.addEventListener('click',event=>{if(event.target===overlay)close()});
   overlay.querySelector('.session-detail-close').onclick=close;
   document.addEventListener('keydown',onKey);document.body.appendChild(overlay);overlay.querySelector('.session-detail-close').focus();
+}
+function sessionFormMarkup(session,mode){
+  const options=Object.keys(subjects).map(id=>`<option value="${id}" ${session.subject===id?'selected':''}>${subjectName(id)}</option>`).join('');
+  return `<section class="confirm-box record-form" role="dialog" aria-modal="true" aria-labelledby="record-form-title"><p class="eyebrow">${mode==='edit'?tx('编辑记录','EDIT RECORD'):tx('完成学习','FINISH SESSION')}</p><h2 id="record-form-title">${mode==='edit'?tx('修改这次学习','Update this session'):tx('记录这次收获','Record your progress')}</h2>${mode==='finish'?`<p>${tx('有效学习','Focused time')}：<b>${minsText(session.minutes)}</b></p>`:''}<form><label><span>${tx('科目','Subject')}</span><select name="subject">${options}</select></label><label><span>${tx('学习标题','Title')}</span><input name="title" maxlength="80" required value="${escapeHtml(session.title||'')}" placeholder="${tx('这次学了什么？','What did you study?')}"></label><div class="form-row"><label><span>${tx('日期','Date')}</span><input name="date" type="date" required value="${escapeHtml(session.date)}"></label><label><span>${tx('开始时间','Start time')}</span><input name="start" type="time" required value="${escapeHtml(session.start)}"></label></div><label><span>${tx('学习时长（分钟）','Duration (minutes)')}</span><input name="minutes" type="number" min="1" max="720" required value="${session.minutes}"></label><label><span>${tx('学习笔记','Study note')}</span><textarea name="note" maxlength="2000" rows="4" placeholder="${tx('写下一点收获（可选）','Add a takeaway (optional)')}">${escapeHtml(session.note||'')}</textarea></label><p class="form-error" aria-live="polite"></p><div class="form-buttons"><button class="form-cancel" type="button">${mode==='finish'?tx('返回学习','Back to session'):tx('取消','Cancel')}</button><button class="form-save" type="submit">${mode==='finish'?tx('保存记录','Save record'):tx('保存修改','Save changes')}</button></div></form></section>`;
+}
+function openSessionEditor(session){openRecordForm({...session},'edit')}
+function openRecordForm(draft,mode){
+  const overlay=document.createElement('div');overlay.className='confirm-overlay record-form-overlay';overlay.innerHTML=sessionFormMarkup(draft,mode);
+  const close=()=>{document.removeEventListener('keydown',onKey);overlay.remove()};
+  const onKey=event=>{if(event.key==='Escape')close()};
+  overlay.addEventListener('click',event=>{if(event.target===overlay)close()});overlay.querySelector('.form-cancel').onclick=close;
+  overlay.querySelector('form').onsubmit=event=>{
+    event.preventDefault();const form=new FormData(event.currentTarget);const title=String(form.get('title')||'').trim();const minutes=Number(form.get('minutes'));const error=overlay.querySelector('.form-error');
+    if(!title){error.textContent=tx('请填写学习标题。','Please enter a title.');return}
+    if(!Number.isInteger(minutes)||minutes<1||minutes>720){error.textContent=tx('学习时长必须是 1–720 分钟。','Duration must be 1–720 minutes.');return}
+    const updated={...draft,subject:String(form.get('subject')),title,note:String(form.get('note')||'').trim(),date:String(form.get('date')),start:String(form.get('start')),minutes,updatedAt:Date.now()};
+    if(mode==='edit'){const index=state.sessions.findIndex(item=>item.id===draft.id);if(index<0)return;state.sessions[index]=updated}
+    else{state.sessions.unshift({...updated,id:Date.now(),createdAt:Date.now()});state.active=null;page='today'}
+    save();close();render();
+  };
+  document.addEventListener('keydown',onKey);document.body.appendChild(overlay);overlay.querySelector('[name="title"]').focus();
+}
+function togglePause(){
+  if(!state.active)return;const now=Date.now();
+  if(state.active.status==='paused'){state.active.status='running';state.active.segmentStartedAt=now;state.active.pausedAt=null}
+  else{state.active.accumulatedMs=activeElapsedMs(now);state.active.status='paused';state.active.segmentStartedAt=null;state.active.pausedAt=now}
+  save();render();
 }
 function confirmShortSession(elapsed){
   return new Promise(resolve=>{
@@ -288,7 +342,7 @@ function confirmShortSession(elapsed){
   });
 }
 async function finishSession(){
-  const elapsed=Math.max(1,Math.round((Date.now()-state.active.startedAt)/60000));
+  const elapsed=activeElapsedMinutes();
   if(elapsed < 25){
     if(!await confirmShortSession(elapsed))return;
     state.active=null;
@@ -297,11 +351,8 @@ async function finishSession(){
     render();
     return;
   }
-  const title=prompt(tx('这次学了什么？请输入记录标题：','What did you study? Enter a title:')); if(!title)return;
-  const note=prompt(tx('写下一点收获（可选）：','Add a note or takeaway (optional):'))||'';
   const d=new Date(state.active.startedAt);
-  state.sessions.unshift({id:Date.now(),subject:state.active.subject,title,note,minutes:elapsed,date:localDay(d),start:d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})});
-  state.active=null;save();page='today';render();
+  openRecordForm({subject:state.active.subject,title:'',note:'',minutes:elapsed,date:localDay(d),start:d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})},'finish');
 }
 applyTheme(); render();
 document.documentElement.lang=isEn()?'en':'zh-CN';
