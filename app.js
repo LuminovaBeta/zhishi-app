@@ -1,3 +1,5 @@
+import { releaseNotes } from './changelog-data.js';
+
 const defaultCategories = [
   {id:'math',name:'数学',en:'Mathematics',color:'#d8ed62'},
   {id:'english',name:'英语',en:'English',color:'#9ccde8'},
@@ -10,201 +12,6 @@ const categoryPresetColors=[
   ['红色','Red','#E85D5D'],['粉色','Pink','#E46FA3'],['紫色','Purple','#8B6FD6'],['靛蓝','Indigo','#5C6BC0'],['灰色','Gray','#8A8F98']
 ];
 const appInfo={version:'1.1.0'};
-// Local release notes, matching CHANGELOG.md and CHANGELOG.en.md (newest first).
-const releaseNotes=[
-  {
-    "version": "1.1.0",
-    "date": "2026-10-13",
-    "summary": [
-      "分类管理与专注体验更新。",
-      "Category management and focus experience update."
-    ],
-    "sections": [
-      {
-        "title": [
-          "新增",
-          "Added"
-        ],
-        "items": [
-          [
-            "专注支持暂停与继续，暂停时间不计入学习时长。",
-            "Pause and resume focus sessions. Paused time is excluded from study duration."
-          ],
-          [
-            "支持编辑记录的标题、分类、日期、开始时间、时长和笔记。",
-            "Edit a record’s title, category, date, start time, duration, and notes."
-          ],
-          [
-            "新增分类管理，支持自定义名称、英文名称和颜色。",
-            "Manage categories with custom names, optional English names, and colors."
-          ],
-          [
-            "提供 10 种分类预设颜色，并保留自定义取色。",
-            "Choose from ten preset category colors or select a custom color."
-          ],
-          [
-            "支持归档与恢复分类，归档后保留历史记录和统计。",
-            "Archive and restore categories while keeping their historical records and statistics."
-          ],
-          [
-            "支持不选择分类，直接开始专注。",
-            "Start a focus session without selecting a category."
-          ],
-          [
-            "新增“暖橙”主题及橙色热力图配色。",
-            "Add the Warm Orange theme and an orange heatmap palette."
-          ],
-          [
-            "新增“关于知时”，提供更新记录、开源许可入口。",
-            "Add About ZHI SHI with access to release notes and open-source licenses."
-          ]
-        ]
-      },
-      {
-        "title": [
-          "优化",
-          "Improved"
-        ],
-        "items": [
-          [
-            "点击记录可直接查看详情，长按提供快捷管理操作。",
-            "Click a record to view its details, or long-press it for quick management actions."
-          ],
-          [
-            "完成学习改用应用内表单填写记录。",
-            "Use an in-app form to save a record when a study session ends."
-          ],
-          [
-            "归档与恢复使用应用内二次确认弹窗。",
-            "Show in-app confirmation dialogs when archiving or restoring categories."
-          ],
-          [
-            "优化表单按钮间距和弹窗布局。",
-            "Improve form button spacing and dialog layouts."
-          ],
-          [
-            "备份支持保存自定义分类、英文名称和归档状态。",
-            "Preserve custom categories, English names, and archive status in backups."
-          ]
-        ]
-      },
-      {
-        "title": [
-          "说明",
-          "Notes"
-        ],
-        "items": [
-          [
-            "删除分类后，历史记录保留并转为“未分类”。",
-            "Deleting a category keeps its historical records and marks them as Uncategorized."
-          ],
-          [
-            "更新记录使用本地静态数据，支持离线查看。",
-            "Release notes use local static data and can be viewed offline."
-          ]
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.0.0",
-    "date": "2026-10-12",
-    "summary": [
-      "知时首个正式版本。",
-      "First official release of ZHI SHI."
-    ],
-    "sections": [
-      {
-        "title": [
-          "新增",
-          "Added"
-        ],
-        "items": [
-          [
-            "支持学习专注计时，学习过程中隐藏时长，结束后展示结果。",
-            "Track focused study time with the duration hidden during a session and shown when it ends."
-          ],
-          [
-            "提供数学、英语、专业课、政治四个固定分类。",
-            "Choose from four built-in categories: Mathematics, English, Major, and Politics."
-          ],
-          [
-            "支持填写学习标题和笔记，保存日期、开始时间及学习时长。",
-            "Add a study title and notes, and save the date, start time, and duration."
-          ],
-          [
-            "支持按日期查看记录，搜索标题或笔记。",
-            "Browse records by date and search titles or notes."
-          ],
-          [
-            "长按记录可查看单次详情或删除记录。",
-            "Long-press a record to view its details or delete it."
-          ],
-          [
-            "提供每日学习目标、今日进度、近 7 天趋势、科目分布和 13 周热力图。",
-            "View daily study goals, today’s progress, seven-day trends, subject distribution, and a 13-week activity heatmap."
-          ],
-          [
-            "支持中英文切换及五种主题配色。",
-            "Switch between Chinese and English and choose from five color themes."
-          ],
-          [
-            "支持本地用户名和头像编辑。",
-            "Edit your local display name and avatar."
-          ],
-          [
-            "支持 JSON 备份导出、覆盖导入及合并去重。",
-            "Export JSON backups, replace existing data on import, or merge records with duplicate removal."
-          ],
-          [
-            "支持网页、PWA 和 Android APK，能够离线使用。",
-            "Use the app offline on the web, as a PWA, or through an Android APK."
-          ]
-        ]
-      },
-      {
-        "title": [
-          "优化",
-          "Improved"
-        ],
-        "items": [
-          [
-            "不足 25 分钟结束时增加二次确认，减少误操作。",
-            "Confirm before ending a session shorter than 25 minutes to help prevent accidental exits."
-          ],
-          [
-            "优化确认按钮布局和头像编辑入口。",
-            "Improve confirmation button layouts and access to avatar editing."
-          ],
-          [
-            "改进 Android 数据导出与分享体验",
-            "Improve data export and sharing on Android."
-          ]
-        ]
-      },
-      {
-        "title": [
-          "说明",
-          "Notes"
-        ],
-        "items": [
-          [
-            "学习数据保存在本机，无需注册账号。",
-            "Study data is stored on your device. No account is required."
-          ],
-          [
-            "不足 25 分钟的专注不会保存为学习记录",
-            "Focus sessions shorter than 25 minutes are not saved as study records."
-          ],
-          [
-            "该版本基于 2026 年 8 月 15 日完成的初版整理而成，作为后续 1.x 系列开发的基准版本。",
-            "This release builds on the initial version completed on August 15, 2026, and serves as the baseline for the 1.x series."
-          ]
-        ]
-      }
-    ]
-  }
-];
 const openSourceNotices=[
   {
     "name": "Capacitor Core / Android",
@@ -237,6 +44,7 @@ state.sessions=(state.sessions||[]).map(session=>({...session,subject:state.cate
 if(state.active&&!state.categories.some(category=>category.id===state.active.subject))state.active.subject=null;
 localStorage.setItem('zhishi-state',JSON.stringify(state));
 let page = 'today';
+let selectedReleaseVersion = null;
 let timerTick;
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', event=>{event.preventDefault();installPrompt=event});
@@ -311,7 +119,7 @@ function shell(content) {
     <main>${content}</main>
     <nav class="bottom-nav">
       ${[['today','⌂',tx('今日','Today')],['history','◫',tx('记录','Records')],['add','＋',tx('开始','Start')],['insights','⌁',tx('趋势','Trends')],['profile','○',tx('我的','Me')]].map(([id,icon,label]) =>
-        `<button class="${page===id||(id==='profile'&&['about','changelog','licenses'].includes(page))?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
+        `<button class="${page===id||(id==='profile'&&['about','changelog','changelog-detail','licenses'].includes(page))?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
     </nav>
   </div>`;
 }
@@ -379,8 +187,22 @@ function infoPageHeading(title,backPage,backLabel){
 function aboutView(){
   return `${infoPageHeading(tx('关于知时','About ZHI SHI'),'profile',tx('返回我的','Back to Me'))}<section class="about-hero"><img class="about-icon" src="icon-192.png" width="76" height="76" alt="${tx('知时 App 图标','ZHI SHI app icon')}"><h2>${tx('知时','ZHI SHI')}</h2><p class="about-version">${tx('当前版本','Current version')} ${appInfo.version}</p><p>${tx('轻量、离线优先的学习记录工具，让每一次专注留下痕迹。','A lightweight, offline-first learning log that makes every focus session count.')}</p></section><section class="settings about-links"><button type="button" data-page="changelog"><span><b>${tx('更新记录','Release notes')}</b><small>${tx('查看各版本的主要更新','See what changed in each release')}</small></span><i>›</i></button><button type="button" data-page="licenses"><span><b>${tx('开源许可','Open-source licenses')}</b><small>${tx('查看项目许可说明与组件许可','Project license information and component licenses')}</small></span><i>›</i></button></section>`;
 }
+function sortedReleases(){
+  return [...releaseNotes].sort((a,b)=>b.version.localeCompare(a.version,'en',{numeric:true}));
+}
+function releaseBadge(release){
+  return release.version===sortedReleases()[0]?.version?`<span class="release-latest">${tx('最新版本','Latest version')}</span>`:'';
+}
+function releaseDate(release){
+  return `<time datetime="${escapeHtml(release.date)}">${tx('发布日期','Released')} · ${escapeHtml(release.date)}</time>`;
+}
 function changelogView(){
-  return `${infoPageHeading(tx('更新记录','Release notes'),'about',tx('返回关于知时','Back to About'))}<div class="release-list">${releaseNotes.map(release=>`<article class="chart-card release-card"><header><h2>v${escapeHtml(release.version)}</h2><time datetime="${release.date}">${tx('发布日期','Released')} · ${release.date}</time></header><p class="release-summary">${escapeHtml(tx(...release.summary))}</p>${release.sections.map(section=>`<section class="release-section"><h3>${tx(...section.title)}</h3><ul>${section.items.map(([zh,en])=>`<li>${escapeHtml(tx(zh,en))}</li>`).join('')}</ul></section>`).join('')}</article>`).join('')}</div>`;
+  return `${infoPageHeading(tx('更新记录','Release notes'),'about',tx('返回关于知时','Back to About'))}<div class="release-list">${sortedReleases().map(release=>`<button type="button" class="chart-card release-card release-preview" data-release-version="${escapeHtml(release.version)}"><span class="release-preview-heading"><strong>v${escapeHtml(release.version)}</strong>${releaseBadge(release)}</span>${releaseDate(release)}<span class="release-summary">${escapeHtml(tx(...release.summary))}</span><span class="release-counts">${release.sections.filter(section=>section.items.length).map(section=>`<span>${escapeHtml(tx(...section.title))} <b>${section.items.length}</b></span>`).join('')}</span><span class="release-more">${tx('查看详情','View details')} <span aria-hidden="true">→</span></span></button>`).join('')}</div>`;
+}
+function changelogDetailView(){
+  const release=releaseNotes.find(item=>item.version===selectedReleaseVersion);
+  if(!release)return changelogView();
+  return `${infoPageHeading(tx('版本详情','Release details'),'changelog',tx('返回更新记录','Back to release notes'))}<article class="chart-card release-card release-detail"><header><h2>v${escapeHtml(release.version)}</h2>${releaseBadge(release)}</header>${releaseDate(release)}<p class="release-summary">${escapeHtml(tx(...release.summary))}</p>${release.sections.filter(section=>section.items.length).map(section=>`<section class="release-section"><h3>${escapeHtml(tx(...section.title))} <span class="release-section-count">${section.items.length}</span></h3><ul>${section.items.map(([zh,en])=>`<li>${escapeHtml(tx(zh,en))}</li>`).join('')}</ul></section>`).join('')}</article>`;
 }
 function licensesView(){
   return `${infoPageHeading(tx('开源许可','Open-source licenses'),'about',tx('返回关于知时','Back to About'))}<section class="chart-card project-license"><h2>${tx('项目许可','Project license')}</h2><p>${tx('项目元数据标注为 ISC，但仓库尚未提供完整许可文件。完整授权信息以正式许可文件为准。','The project metadata lists ISC, but a complete project license file has not been provided. The complete licensing terms should be confirmed in the official license file.')}</p></section><section class="license-list"><h2>${tx('所用开源组件','Open-source components')}</h2>${openSourceNotices.map(notice=>`<details class="chart-card license-card"><summary><span>${escapeHtml(notice.name)}<small>${escapeHtml(notice.version)}</small></span><b>MIT</b></summary><pre>${escapeHtml(notice.text)}</pre></details>`).join('')}</section>`;
@@ -506,11 +328,12 @@ function streak(){const days=new Set(state.sessions.map(s=>s.date));let n=0,d=ne
 
 function render(){
   clearInterval(timerTick);
-  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,licenses:licensesView};
+  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,'changelog-detail':changelogDetailView,licenses:licensesView};
   $app.innerHTML=shell((views[page]||todayView)()); bind();
 }
 function bind(){
   document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{page=el.dataset.page;render();scrollTo(0,0)});
+  document.querySelectorAll('[data-release-version]').forEach(el=>el.onclick=()=>{selectedReleaseVersion=el.dataset.releaseVersion;page='changelog-detail';render();scrollTo(0,0)});
   document.querySelectorAll('[data-edit-profile]').forEach(el=>el.onclick=openProfileEditor);
   document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{const now=Date.now(),subject=el.dataset.subject||null;if(subject&&!availableCategories().some(category=>category.id===subject))return;state.active={subject,startedAt:now,status:'running',segmentStartedAt:now,accumulatedMs:0,pausedAt:null};save();page='today';render()});
   document.querySelector('#toggle-pause')?.addEventListener('click',togglePause);

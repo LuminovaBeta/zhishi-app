@@ -1,4 +1,18 @@
 :root{--theme-accent:#78903d;--theme-soft:#eef2e6}
+.release-preview{display:block;width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.release-preview:hover{border-color:var(--theme-accent)}
+.release-preview:focus-visible{outline:3px solid var(--theme-accent);outline-offset:3px}
+.release-preview-heading{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.release-preview-heading strong{font:600 23px serif}
+.release-latest{display:inline-block;padding:4px 9px;border-radius:999px;background:var(--theme-soft);color:var(--theme-accent);font-size:10px;font-weight:700}
+.release-preview .release-summary{display:block}
+.release-counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.release-counts>span{padding:5px 9px;border-radius:8px;background:var(--theme-soft);color:var(--ink);font-size:11px}
+.release-counts b{margin-left:3px}
+.release-more{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:13px;border-top:1px solid #e7eae4;color:var(--theme-accent);font-size:12px;font-weight:700}
+.release-detail>time{display:block;margin-top:10px}
+.release-section-count{margin-left:5px;color:var(--muted);font-size:11px;font-weight:400}
+.release-detail .release-section ul{margin-top:8px}
 .record-form .form-buttons{display:grid}
 .release-summary{font-size:13px;color:var(--muted);line-height:1.7;margin:14px 0 0}.release-section h3{font-size:13px;margin:20px 0 0;color:var(--ink)}.release-section ul{margin-top:8px}
 .info-back{margin-top:24px;padding:8px 0;border:0;background:transparent;color:var(--theme-accent);font-size:12px;cursor:pointer}.page-title.info-title{padding-top:8px;padding-bottom:16px}.info-title h1{font-size:32px}.about-hero{text-align:center;padding:8px 12px 26px}.about-icon{display:block;margin:0 auto 15px;border-radius:22px}.about-hero h2{font:600 28px serif;margin:0 0 8px}.about-hero p{color:var(--muted);font-size:13px;line-height:1.7;margin:12px 0 0}.about-hero .about-version{font-size:12px;margin:0}.about-links i{font-style:normal}.release-list{display:grid;gap:12px}.release-card{margin-top:0}.release-card header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.release-card h2{margin:0}.release-card time{color:var(--muted);font-size:11px}.release-card ul{margin:16px 0 0;padding-left:19px;font-size:13px;line-height:1.75}.release-card li+li{margin-top:8px}.project-license{margin-top:0}.project-license p{font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:0}.license-list>h2{font:600 23px serif;margin:24px 0 12px}.license-card summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:13px;font-weight:700}.license-card summary span{min-width:0;overflow-wrap:anywhere}.license-card summary small{display:block;margin-top:5px;font-weight:400;color:var(--muted);font-size:11px}.license-card summary b{color:var(--theme-accent);font-size:11px}.license-card pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.75 ui-monospace,Consolas,monospace;margin:18px 0 0;color:#526057}

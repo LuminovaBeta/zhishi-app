@@ -1,5 +1,5 @@
-const CACHE = 'zhishi-v29';
-const ASSETS = ['./', './index.html', './styles.css', './heatmap.css', './theme.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
+const CACHE = 'zhishi-v30';
+const ASSETS = ['./', './index.html', './styles.css', './heatmap.css', './theme.css', './app.js', './changelog-data.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
