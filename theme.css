@@ -1,4 +1,20 @@
 :root{--theme-accent:#78903d;--theme-soft:#eef2e6}
+.bars i{background:var(--lime)}
+/* Let long English labels wrap without widening the two-column grid. */
+.subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.subject-card{min-width:0;height:auto;min-height:155px}
+.subject-card i{flex-shrink:0}
+.subject-card b,.subject-card small{min-width:0;overflow-wrap:anywhere}
+.subject-card b{padding-top:12px}
+/* Keep record text inside its column, including long words and parentheses. */
+.session-list,.date-group{grid-template-columns:minmax(0,1fr)}
+.session{min-width:0;grid-template-columns:43px minmax(0,1fr) auto}
+.session>div{min-width:0;overflow-wrap:anywhere}
+.session-actions>button{flex-shrink:0}
+@media(max-width:480px){
+  .session.delete-enabled{grid-template-columns:43px minmax(0,1fr)}
+  .session.delete-enabled .session-actions{grid-column:1 / -1;justify-content:flex-end;flex-wrap:wrap;min-width:0}
+}
 .release-preview{display:block;width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .release-preview:hover{border-color:var(--theme-accent)}
 .release-preview:focus-visible{outline:3px solid var(--theme-accent);outline-offset:3px}
