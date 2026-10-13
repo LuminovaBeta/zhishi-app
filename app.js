@@ -9,6 +9,219 @@ const categoryPresetColors=[
   ['蓝色','Blue','#4F7CFF'],['青色','Teal','#2BB8A9'],['绿色','Green','#43A047'],['黄色','Yellow','#F2B84B'],['橙色','Orange','#F28C45'],
   ['红色','Red','#E85D5D'],['粉色','Pink','#E46FA3'],['紫色','Purple','#8B6FD6'],['靛蓝','Indigo','#5C6BC0'],['灰色','Gray','#8A8F98']
 ];
+const appInfo={version:'1.1.0'};
+// Local release notes, matching CHANGELOG.md and CHANGELOG.en.md (newest first).
+const releaseNotes=[
+  {
+    "version": "1.1.0",
+    "date": "2026-10-13",
+    "summary": [
+      "分类管理与专注体验更新。",
+      "Category management and focus experience update."
+    ],
+    "sections": [
+      {
+        "title": [
+          "新增",
+          "Added"
+        ],
+        "items": [
+          [
+            "专注支持暂停与继续，暂停时间不计入学习时长。",
+            "Pause and resume focus sessions. Paused time is excluded from study duration."
+          ],
+          [
+            "支持编辑记录的标题、分类、日期、开始时间、时长和笔记。",
+            "Edit a record’s title, category, date, start time, duration, and notes."
+          ],
+          [
+            "新增分类管理，支持自定义名称、英文名称和颜色。",
+            "Manage categories with custom names, optional English names, and colors."
+          ],
+          [
+            "提供 10 种分类预设颜色，并保留自定义取色。",
+            "Choose from ten preset category colors or select a custom color."
+          ],
+          [
+            "支持归档与恢复分类，归档后保留历史记录和统计。",
+            "Archive and restore categories while keeping their historical records and statistics."
+          ],
+          [
+            "支持不选择分类，直接开始专注。",
+            "Start a focus session without selecting a category."
+          ],
+          [
+            "新增“暖橙”主题及橙色热力图配色。",
+            "Add the Warm Orange theme and an orange heatmap palette."
+          ],
+          [
+            "新增“关于知时”，提供更新记录、开源许可入口。",
+            "Add About ZHI SHI with access to release notes and open-source licenses."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "优化",
+          "Improved"
+        ],
+        "items": [
+          [
+            "点击记录可直接查看详情，长按提供快捷管理操作。",
+            "Click a record to view its details, or long-press it for quick management actions."
+          ],
+          [
+            "完成学习改用应用内表单填写记录。",
+            "Use an in-app form to save a record when a study session ends."
+          ],
+          [
+            "归档与恢复使用应用内二次确认弹窗。",
+            "Show in-app confirmation dialogs when archiving or restoring categories."
+          ],
+          [
+            "优化表单按钮间距和弹窗布局。",
+            "Improve form button spacing and dialog layouts."
+          ],
+          [
+            "备份支持保存自定义分类、英文名称和归档状态。",
+            "Preserve custom categories, English names, and archive status in backups."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "说明",
+          "Notes"
+        ],
+        "items": [
+          [
+            "删除分类后，历史记录保留并转为“未分类”。",
+            "Deleting a category keeps its historical records and marks them as Uncategorized."
+          ],
+          [
+            "更新记录使用本地静态数据，支持离线查看。",
+            "Release notes use local static data and can be viewed offline."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-10-12",
+    "summary": [
+      "知时首个正式版本。",
+      "First official release of ZHI SHI."
+    ],
+    "sections": [
+      {
+        "title": [
+          "新增",
+          "Added"
+        ],
+        "items": [
+          [
+            "支持学习专注计时，学习过程中隐藏时长，结束后展示结果。",
+            "Track focused study time with the duration hidden during a session and shown when it ends."
+          ],
+          [
+            "提供数学、英语、专业课、政治四个固定分类。",
+            "Choose from four built-in categories: Mathematics, English, Major, and Politics."
+          ],
+          [
+            "支持填写学习标题和笔记，保存日期、开始时间及学习时长。",
+            "Add a study title and notes, and save the date, start time, and duration."
+          ],
+          [
+            "支持按日期查看记录，搜索标题或笔记。",
+            "Browse records by date and search titles or notes."
+          ],
+          [
+            "长按记录可查看单次详情或删除记录。",
+            "Long-press a record to view its details or delete it."
+          ],
+          [
+            "提供每日学习目标、今日进度、近 7 天趋势、科目分布和 13 周热力图。",
+            "View daily study goals, today’s progress, seven-day trends, subject distribution, and a 13-week activity heatmap."
+          ],
+          [
+            "支持中英文切换及五种主题配色。",
+            "Switch between Chinese and English and choose from five color themes."
+          ],
+          [
+            "支持本地用户名和头像编辑。",
+            "Edit your local display name and avatar."
+          ],
+          [
+            "支持 JSON 备份导出、覆盖导入及合并去重。",
+            "Export JSON backups, replace existing data on import, or merge records with duplicate removal."
+          ],
+          [
+            "支持网页、PWA 和 Android APK，能够离线使用。",
+            "Use the app offline on the web, as a PWA, or through an Android APK."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "优化",
+          "Improved"
+        ],
+        "items": [
+          [
+            "不足 25 分钟结束时增加二次确认，减少误操作。",
+            "Confirm before ending a session shorter than 25 minutes to help prevent accidental exits."
+          ],
+          [
+            "优化确认按钮布局和头像编辑入口。",
+            "Improve confirmation button layouts and access to avatar editing."
+          ],
+          [
+            "改进 Android 数据导出与分享体验",
+            "Improve data export and sharing on Android."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "说明",
+          "Notes"
+        ],
+        "items": [
+          [
+            "学习数据保存在本机，无需注册账号。",
+            "Study data is stored on your device. No account is required."
+          ],
+          [
+            "不足 25 分钟的专注不会保存为学习记录",
+            "Focus sessions shorter than 25 minutes are not saved as study records."
+          ],
+          [
+            "该版本基于 2026 年 8 月 15 日完成的初版整理而成，作为后续 1.x 系列开发的基准版本。",
+            "This release builds on the initial version completed on August 15, 2026, and serves as the baseline for the 1.x series."
+          ]
+        ]
+      }
+    ]
+  }
+];
+const openSourceNotices=[
+  {
+    "name": "Capacitor Core / Android",
+    "version": "8.5.0",
+    "text": "MIT License\n\nCopyright (c) 2017-present Drifty Co.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+  },
+  {
+    "name": "Capacitor Filesystem",
+    "version": "8.1.2",
+    "text": "MIT License\n\nCopyright (c) 2025 Ionic\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+  },
+  {
+    "name": "Capacitor Share",
+    "version": "8.0.1",
+    "text": "Copyright 2020-present Ionic\nhttps://ionic.io\n\nMIT License\n\nPermission is hereby granted, free of charge, to any person obtaining\na copy of this software and associated documentation files (the\n\"Software\"), to deal in the Software without restriction, including\nwithout limitation the rights to use, copy, modify, merge, publish,\ndistribute, sublicense, and/or sell copies of the Software, and to\npermit persons to whom the Software is furnished to do so, subject to\nthe following conditions:\n\nThe above copyright notice and this permission notice shall be\nincluded in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND\nNONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE\nLIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION\nOF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION\nWITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."
+  }
+];
 const $app = document.querySelector('#app');
 const state = JSON.parse(localStorage.getItem('zhishi-state') || 'null') || seed();
 let localProfile = JSON.parse(localStorage.getItem('zhishi-profile') || 'null') || {name:'',avatar:''};
@@ -98,7 +311,7 @@ function shell(content) {
     <main>${content}</main>
     <nav class="bottom-nav">
       ${[['today','⌂',tx('今日','Today')],['history','◫',tx('记录','Records')],['add','＋',tx('开始','Start')],['insights','⌁',tx('趋势','Trends')],['profile','○',tx('我的','Me')]].map(([id,icon,label]) =>
-        `<button class="${page===id?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
+        `<button class="${page===id||(id==='profile'&&['about','changelog','licenses'].includes(page))?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
     </nav>
   </div>`;
 }
@@ -159,7 +372,19 @@ function heatmapView(){
 }
 function heatLevel(m){return m===0?0:m<60?1:m<180?2:m<300?3:4}
 function profileView(){return `<section class="profile-hero"><div class="big-avatar">${avatarMarkup()}</div><h1>${escapeHtml(profileName())}</h1><p>${tx('在自己的节奏里，持续生长。','Keep growing at your own pace.')}</p></section>
-  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><button id="manage-categories"><span><b>${tx('分类管理','Category management')}</b><small>${tx(`新增、编辑或删除分类 · 当前 ${state.categories.length} 个`,`Add, edit, or delete · ${state.categories.length} total`)}</small></span><i>›</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="warm-orange" ${state.theme==='warm-orange'?'selected':''}>${tx('暖橙','Warm Orange')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button></section><p class="version">${tx('知时','ZHI SHI')} 1.0 · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
+  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><button id="manage-categories"><span><b>${tx('分类管理','Category management')}</b><small>${tx(`新增、编辑或删除分类 · 当前 ${state.categories.length} 个`,`Add, edit, or delete · ${state.categories.length} total`)}</small></span><i>›</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="warm-orange" ${state.theme==='warm-orange'?'selected':''}>${tx('暖橙','Warm Orange')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button><button type="button" data-page="about"><span><b>${tx('关于知时','About ZHI SHI')}</b><small>${tx('版本信息、更新记录与开源许可','Version, release notes, and licenses')}</small></span><i>›</i></button></section><p class="version">${tx('知时','ZHI SHI')} ${appInfo.version} · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
+function infoPageHeading(title,backPage,backLabel){
+  return `<button class="info-back" type="button" data-page="${backPage}">← ${backLabel}</button><section class="page-title compact info-title"><p class="eyebrow">ZHI SHI</p><h1>${title}</h1></section>`;
+}
+function aboutView(){
+  return `${infoPageHeading(tx('关于知时','About ZHI SHI'),'profile',tx('返回我的','Back to Me'))}<section class="about-hero"><img class="about-icon" src="icon-192.png" width="76" height="76" alt="${tx('知时 App 图标','ZHI SHI app icon')}"><h2>${tx('知时','ZHI SHI')}</h2><p class="about-version">${tx('当前版本','Current version')} ${appInfo.version}</p><p>${tx('轻量、离线优先的学习记录工具，让每一次专注留下痕迹。','A lightweight, offline-first learning log that makes every focus session count.')}</p></section><section class="settings about-links"><button type="button" data-page="changelog"><span><b>${tx('更新记录','Release notes')}</b><small>${tx('查看各版本的主要更新','See what changed in each release')}</small></span><i>›</i></button><button type="button" data-page="licenses"><span><b>${tx('开源许可','Open-source licenses')}</b><small>${tx('查看项目许可说明与组件许可','Project license information and component licenses')}</small></span><i>›</i></button></section>`;
+}
+function changelogView(){
+  return `${infoPageHeading(tx('更新记录','Release notes'),'about',tx('返回关于知时','Back to About'))}<div class="release-list">${releaseNotes.map(release=>`<article class="chart-card release-card"><header><h2>v${escapeHtml(release.version)}</h2><time datetime="${release.date}">${tx('发布日期','Released')} · ${release.date}</time></header><p class="release-summary">${escapeHtml(tx(...release.summary))}</p>${release.sections.map(section=>`<section class="release-section"><h3>${tx(...section.title)}</h3><ul>${section.items.map(([zh,en])=>`<li>${escapeHtml(tx(zh,en))}</li>`).join('')}</ul></section>`).join('')}</article>`).join('')}</div>`;
+}
+function licensesView(){
+  return `${infoPageHeading(tx('开源许可','Open-source licenses'),'about',tx('返回关于知时','Back to About'))}<section class="chart-card project-license"><h2>${tx('项目许可','Project license')}</h2><p>${tx('项目元数据标注为 ISC，但仓库尚未提供完整许可文件。完整授权信息以正式许可文件为准。','The project metadata lists ISC, but a complete project license file has not been provided. The complete licensing terms should be confirmed in the official license file.')}</p></section><section class="license-list"><h2>${tx('所用开源组件','Open-source components')}</h2>${openSourceNotices.map(notice=>`<details class="chart-card license-card"><summary><span>${escapeHtml(notice.name)}<small>${escapeHtml(notice.version)}</small></span><b>MIT</b></summary><pre>${escapeHtml(notice.text)}</pre></details>`).join('')}</section>`;
+}
 function validateBackup(data){
   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error(tx('备份内容必须是 JSON 对象。','The backup must be a JSON object.'));
   if(!Array.isArray(data.sessions))throw new Error(tx('缺少有效的 sessions 学习记录列表。','A valid sessions list is required.'));
@@ -281,7 +506,7 @@ function streak(){const days=new Set(state.sessions.map(s=>s.date));let n=0,d=ne
 
 function render(){
   clearInterval(timerTick);
-  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView};
+  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,licenses:licensesView};
   $app.innerHTML=shell((views[page]||todayView)()); bind();
 }
 function bind(){
