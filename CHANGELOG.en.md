@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.1.1 - 2026-10-15
+
+### Added
+
+### Improved
+
+- Brighten the weekly bar chart with theme-matched colors for improved clarity and visual appeal.
+- Refine the focus card layout with status text at the top left and horizontally aligned action buttons at the bottom right, using consistent button sizes and centered labels.
+- Improve the daily progress ring on narrow screens so nearby text cannot compress it into an oval.
+
+### Fixed
+
+- Fix mobile card layout shifts caused by long English category names.
+- Fix record cards overflowing the screen after a long press when titles contain long English text or parentheses; action buttons now appear on a separate row on mobile.
+- Fix false "Export failed" alerts after saving backups with some Android file managers by distinguishing canceled shares from actual export errors.
+
+### Removed
+
 ## v1.1.0 - 2026-10-13
 
 Category management and focus experience update.
