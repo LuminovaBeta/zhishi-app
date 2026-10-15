@@ -98,7 +98,13 @@ async function exportData(button){
       const {Filesystem,Share}=window.Capacitor.Plugins||{};
       if(!Filesystem||!Share)throw new Error('Native export plugins are unavailable');
       const file=await Filesystem.writeFile({path:'zhishi-study-records.json',directory:'CACHE',encoding:'utf8',data});
-      await Share.share({title:tx('导出学习记录','Export study records'),text:tx('知时学习记录备份','ZHI SHI study records backup'),files:[file.uri],dialogTitle:tx('保存或分享备份','Save or share backup')});
+      try{
+        await Share.share({title:tx('导出学习记录','Export study records'),text:tx('知时学习记录备份','ZHI SHI study records backup'),files:[file.uri],dialogTitle:tx('保存或分享备份','Save or share backup')});
+      }catch(error){
+        // Android file managers may save the file but return a canceled share result.
+        // This also covers a real dismissal: neither confirms nor disproves saving.
+        if(error?.message!=='Share canceled')throw error;
+      }
       return;
     }
     const url=URL.createObjectURL(new Blob([data],{type:'application/json;charset=utf-8'}));
