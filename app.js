@@ -11,7 +11,7 @@ const categoryPresetColors=[
   ['蓝色','Blue','#4F7CFF'],['青色','Teal','#2BB8A9'],['绿色','Green','#43A047'],['黄色','Yellow','#F2B84B'],['橙色','Orange','#F28C45'],
   ['红色','Red','#E85D5D'],['粉色','Pink','#E46FA3'],['紫色','Purple','#8B6FD6'],['靛蓝','Indigo','#5C6BC0'],['灰色','Gray','#8A8F98']
 ];
-const appInfo={version:'1.1.0'};
+const appInfo={version:'1.1.1'};
 const openSourceNotices=[
   {
     "name": "Capacitor Core / Android",

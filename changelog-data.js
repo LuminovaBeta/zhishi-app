@@ -3,6 +3,70 @@
 // The UI sorts versions and derives section counts automatically.
 export const releaseNotes=[
   {
+    "version": "1.1.1",
+    "date": "2026-10-15",
+    "summary": [
+      "优化移动端布局与统计配色，修复备份导出误报。",
+      "Improve mobile layouts and chart colors, and fix false backup export errors."
+    ],
+    "sections": [
+      {
+        "title": [
+          "新增",
+          "Added"
+        ],
+        "items": []
+      },
+      {
+        "title": [
+          "优化",
+          "Improved"
+        ],
+        "items": [
+          [
+            "调亮每周统计柱状图配色，并随主题切换对应颜色，提升图表的清晰度与视觉体验。",
+            "Brighten the weekly bar chart with theme-matched colors for improved clarity and visual appeal."
+          ],
+          [
+            "优化专注卡片布局，状态文字显示在左上方，操作按钮在右下方横向排列，统一按钮尺寸与文字居中。",
+            "Refine the focus card layout with status text at the top left and horizontally aligned action buttons at the bottom right, using consistent button sizes and centered labels."
+          ],
+          [
+            "优化今日进度圆环的窄屏适配，避免被文字挤压变形，保持正圆显示。",
+            "Improve the daily progress ring on narrow screens so nearby text cannot compress it into an oval."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "修复",
+          "Fixed"
+        ],
+        "items": [
+          [
+            "修复手机端英文科目名称过长导致卡片布局偏移的问题。",
+            "Fix mobile card layout shifts caused by long English category names."
+          ],
+          [
+            "修复历史记录长按展开后，含长英文或英文括号的标题导致卡片超出页面的问题，操作按钮在手机端改为独立一行显示。",
+            "Fix record cards overflowing the screen after a long press when titles contain long English text or parentheses; action buttons now appear on a separate row on mobile."
+          ],
+          [
+            "修复部分 Android 文件管理器保存备份后仍提示“导出失败”的问题，区分分享取消状态与实际导出错误。",
+            "Fix false \"Export failed\" alerts after saving backups with some Android file managers by distinguishing canceled shares from actual export errors."
+          ]
+        ]
+      },
+      {
+        "title": [
+          "移除内容",
+          "Removed"
+        ],
+        "items": []
+      }
+    ]
+  },
+  {
     "version": "1.1.0",
     "date": "2026-10-13",
     "summary": [
