@@ -47,6 +47,8 @@ let page = 'today';
 let selectedReleaseVersion = null;
 let timerTick;
 let installPrompt = null;
+let clearSessionActions = ()=>{};
+let unbindSessionInteractions = ()=>{};
 window.addEventListener('beforeinstallprompt', event=>{event.preventDefault();installPrompt=event});
 
 if(state.active){
@@ -162,6 +164,7 @@ function historyView() {
   const groups = Object.groupBy ? Object.groupBy(state.sessions, s=>s.date) : state.sessions.reduce((a,s)=>((a[s.date]??=[]).push(s),a),{});
   return `<section class="page-title compact"><p class="eyebrow">ARCHIVE</p><h1>${tx('学习记录','Study records')}</h1><p>${tx('共','Total')} ${state.sessions.length} ${tx('次专注','sessions')} · ${minsText(state.sessions.reduce((a,s)=>a+s.minutes,0))}</p></section>
   <label class="search"><span>⌕</span><input id="search" placeholder="${tx('搜索标题或笔记','Search titles or notes')}" /></label>
+  <p class="session-actions-hint" role="status" hidden>${tx('双击其他区域退出','Double-tap outside this record to exit')}</p>
   <div id="history-results">${Object.entries(groups).sort(([a],[b])=>b.localeCompare(a)).map(([date,items])=>`<section class="date-group"><header><b>${date===localDay()?tx('今天','Today'):date}</b><span>${minsText(items.reduce((a,s)=>a+s.minutes,0))}</span></header>${items.map(sessionCard).join('')}</section>`).join('')}</div>`;
 }
 function sessionCard(s) { return `<article class="session" data-id="${s.id}" tabindex="0" aria-label="${tx('查看记录','View record')}：${escapeHtml(s.title)}"><i style="--tone:${categoryColor(s.subject)}">${escapeHtml(categoryIcon(s.subject))}</i><div><b>${escapeHtml(s.title)}</b><small>${s.start} · ${escapeHtml(subjectName(s.subject))}</small></div><span class="session-actions"><strong>${minsText(s.minutes)}</strong><button class="view-session" data-view-id="${s.id}">${tx('查看','View')}</button><button class="edit-session" data-edit-id="${s.id}">${tx('编辑','Edit')}</button><button class="delete-session" data-delete-id="${s.id}" aria-label="${tx('删除记录','Delete record')}">×</button></span></article>`; }
@@ -337,6 +340,7 @@ function empty(a,b){return `<div class="empty"><i>○</i><b>${a}</b><p>${b}</p><
 function streak(){const days=new Set(state.sessions.map(s=>s.date));let n=0,d=new Date();while(days.has(localDay(d))){n++;d.setDate(d.getDate()-1)}return n}
 
 function render(){
+  unbindSessionInteractions();
   clearInterval(timerTick);
   const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,'changelog-detail':changelogDetailView,licenses:licensesView};
   $app.innerHTML=shell((views[page]||todayView)()); bind();
@@ -350,7 +354,7 @@ function bind(){
   document.querySelector('#finish')?.addEventListener('click',finishSession);
   document.querySelector('#discard')?.addEventListener('click',()=>{if(confirm(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
   bindSessionDeletion();
-  document.querySelector('#search')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelector('#history-results').innerHTML=state.sessions.filter(s=>(s.title+s.note).toLowerCase().includes(q)).map(sessionCard).join('')||empty(tx('没有找到记录','No records found'),tx('换个关键词试试。','Try another keyword.'))});
+  document.querySelector('#search')?.addEventListener('input',e=>{clearSessionActions();const q=e.target.value.toLowerCase();document.querySelector('#history-results').innerHTML=state.sessions.filter(s=>(s.title+s.note).toLowerCase().includes(q)).map(sessionCard).join('')||empty(tx('没有找到记录','No records found'),tx('换个关键词试试。','Try another keyword.'))});
   document.querySelector('#goal')?.addEventListener('change',e=>{state.goal=Number(e.target.value);save()});
   document.querySelector('#theme')?.addEventListener('change',e=>{state.theme=e.target.value;applyTheme();save()});
   document.querySelector('#language')?.addEventListener('click',()=>{state.language=isEn()?'zh':'en';save();document.documentElement.lang=isEn()?'en':'zh-CN';render()});
@@ -388,32 +392,69 @@ function bind(){
   }));
 }
 function bindSessionDeletion(){
-  let press=null,ignoreNextClick=false;
+  let press=null,ignoreNextClick=false,selected=null,lastOutsideTap=null;
+  const history=document.querySelector('#history-results');
+  const hint=document.querySelector('.session-actions-hint');
   const cancelPress=()=>{if(press?.timer)clearTimeout(press.timer);press=null};
-  const reveal=session=>{
+  clearSessionActions=()=>{
+    cancelPress();selected=null;lastOutsideTap=null;ignoreNextClick=false;
     document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
+    $app.classList.remove('history-actions-open');
+    if(hint)hint.hidden=true;
+  };
+  const onScroll=()=>{if(press)ignoreNextClick=true;cancelPress();lastOutsideTap=null};
+  document.addEventListener('scroll',onScroll,true);
+  unbindSessionInteractions=()=>{clearSessionActions();document.removeEventListener('scroll',onScroll,true)};
+  const reveal=session=>{
+    clearSessionActions();
+    selected=session;
     session.classList.add('delete-enabled');
+    if(history?.contains(session)){
+      $app.classList.add('history-actions-open');
+      hint.hidden=false;
+    }
     session.querySelector('.view-session')?.focus({preventScroll:true});
   };
   $app.onpointerdown=event=>{
+    if(event.button!==0||event.isPrimary===false)return;
+    cancelPress();ignoreNextClick=false;
     const session=event.target.closest('.session');
-    if(!session||event.target.closest('.view-session, .edit-session, .delete-session')||event.button!==0)return;
-    cancelPress();
-    press={x:event.clientX,y:event.clientY,timer:setTimeout(()=>{reveal(session);ignoreNextClick=true;press=null},550)};
+    press={x:event.clientX,y:event.clientY};
+    if(!session||event.target.closest('button'))return;
+    press.timer=setTimeout(()=>{reveal(session);ignoreNextClick=true},550);
   };
-  $app.onpointermove=event=>{if(press&&Math.hypot(event.clientX-press.x,event.clientY-press.y)>10)cancelPress()};
+  $app.onpointermove=event=>{
+    if(press&&Math.hypot(event.clientX-press.x,event.clientY-press.y)>10){
+      cancelPress();lastOutsideTap=null;ignoreNextClick=true;
+    }
+  };
   $app.onpointerup=cancelPress;
-  $app.onpointercancel=cancelPress;
+  $app.onpointercancel=()=>{cancelPress();lastOutsideTap=null;ignoreNextClick=true};
   $app.oncontextmenu=event=>{
     const session=event.target.closest('.session');
     if(!session)return;
     event.preventDefault();cancelPress();reveal(session);ignoreNextClick=true;
   };
   $app.onclick=event=>{
+    // Ignore the release click after a long press or a drag, including on action buttons.
+    if(ignoreNextClick){ignoreNextClick=false;return}
+    if(selected&&history?.contains(selected)&&!selected.contains(event.target)){
+      // Navigation, search and other controls retain their normal single-click behavior.
+      if(event.target.closest('button, input, select, textarea, a, label'))clearSessionActions();
+      else{
+        event.preventDefault();
+        const tap={time:Date.now(),x:event.clientX,y:event.clientY};
+        if(lastOutsideTap&&tap.time-lastOutsideTap.time<=350&&Math.hypot(tap.x-lastOutsideTap.x,tap.y-lastOutsideTap.y)<=32)clearSessionActions();
+        else lastOutsideTap=tap;
+        return;
+      }
+    }
+    lastOutsideTap=null;
     const viewButton=event.target.closest('.view-session');
     if(viewButton){
       event.stopPropagation();
       const session=state.sessions.find(item=>item.id===Number(viewButton.dataset.viewId));
+      clearSessionActions();
       if(session)openSessionDetail(session);
       return;
     }
@@ -421,6 +462,7 @@ function bindSessionDeletion(){
     if(editButton){
       event.stopPropagation();
       const session=state.sessions.find(item=>item.id===Number(editButton.dataset.editId));
+      clearSessionActions();
       if(session)openSessionEditor(session);
       return;
     }
@@ -428,17 +470,19 @@ function bindSessionDeletion(){
     if(button){
       event.stopPropagation();
       const id=Number(button.dataset.deleteId),session=state.sessions.find(item=>item.id===id); if(!session)return;
+      clearSessionActions();
       if(!confirm(tx(`确定删除“${session.title}”（${minsText(session.minutes)}）吗？此操作无法撤销。`,`Delete “${session.title}” (${minsText(session.minutes)})? This cannot be undone.`)))return;
       state.sessions=state.sessions.filter(item=>item.id!==id);save();render();return;
     }
-    if(ignoreNextClick){ignoreNextClick=false;return}
     const sessionEl=event.target.closest('.session');
-    if(sessionEl){const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));if(session)openSessionDetail(session);return}
-    document.querySelectorAll('.session.delete-enabled').forEach(item=>item.classList.remove('delete-enabled'));
+    if(sessionEl){const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));clearSessionActions();if(session)openSessionDetail(session);return}
+    clearSessionActions();
   };
   $app.onkeydown=event=>{
+    if(event.key==='Escape'&&selected){event.preventDefault();const previous=selected;clearSessionActions();previous.focus({preventScroll:true});return}
+    if(event.target.closest('button'))return;
     const sessionEl=event.target.closest('.session');
-    if(sessionEl&&(event.key==='Enter'||event.key===' ')){event.preventDefault();const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));if(session)openSessionDetail(session)}
+    if(sessionEl&&(event.key==='Enter'||event.key===' ')){event.preventDefault();const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));clearSessionActions();if(session)openSessionDetail(session)}
   };
 }
 function openSessionDetail(session){
