@@ -152,3 +152,17 @@
 :root[data-theme="classic-dark"] .active-card .active-actions .pause-button:is(:hover,:active){background:var(--surface-raised);border-color:var(--theme-accent)}
 :root[data-theme="classic-dark"] :is(.subject-card,.release-preview):hover{border-color:var(--theme-accent)}
 :root[data-theme="classic-dark"] .delete-session:active{background:var(--danger-soft)}
+/* Shared dialogs replace browser alerts without changing existing form dialogs. */
+.app-dialog-overlay{z-index:70}
+.app-dialog{max-height:90vh;overflow:auto;color:var(--ink);text-align:center}
+.app-dialog h2,.app-dialog p{overflow-wrap:anywhere}
+.app-dialog #app-dialog-message{white-space:pre-wrap}
+.app-dialog .app-dialog-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.app-dialog .app-dialog-choices{grid-template-columns:minmax(0,1fr)}
+.app-dialog-actions>button:only-child{grid-column:1 / -1}
+.app-dialog button{padding:10px 12px;line-height:1.4;overflow-wrap:anywhere}
+.app-dialog-cancel{border:1px solid var(--border,#dfe4dc);background:var(--surface-raised,var(--paper));color:var(--ink)}
+.app-dialog-accept{border:0;background:var(--theme-soft);color:var(--ink)}
+.app-dialog-danger{border:1px solid currentColor;background:var(--danger-soft,#fff5f3);color:var(--danger,#a14d40)}
+.app-dialog button:focus-visible{outline:2px solid var(--theme-accent);outline-offset:3px}
+.app-toast{position:fixed;z-index:65;bottom:calc(98px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:min(390px,calc(100% - 40px));padding:12px 16px;border:1px solid var(--border,var(--theme-soft));border-radius:14px;background:var(--surface,var(--paper));color:var(--ink);box-shadow:0 4px 18px #00000014;font-size:13px;line-height:1.6;text-align:center;overflow-wrap:anywhere;pointer-events:none}

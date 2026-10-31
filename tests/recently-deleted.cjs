@@ -8,11 +8,12 @@ function setup(){
   let stored,fail=false;
   const state={goal:300,language:'en',theme:'classic-dark',seedDataRemoved:true,active:null,categories:[{id:'math',name:'Math',color:'#4F7CFF',archived:true}],sessions:[],deletedSessions:[]};
   const alerts=[];
-  const ctx={state,console:{error(){}},Date,Math,Set,Map,Number,JSON,Array,defaultCategories:[],tx:(zh,en)=>en,alert:message=>alerts.push(message),confirm:()=>true,render(){},localStorage:{setItem(key,value){assert.equal(key,'zhishi-state');if(fail)throw Error('Quota');stored=value}}};
+  const ctx={state,console:{error(){}},Date,Math,Set,Map,Number,JSON,Array,defaultCategories:[],tx:(zh,en)=>en,appAlert:message=>alerts.push(message),showToast:message=>alerts.push(message),confirmAction:async()=>true,render(){},localStorage:{setItem(key,value){assert.equal(key,'zhishi-state');if(fail)throw Error('Quota');stored=value}}};
   vm.createContext(ctx);vm.runInContext(helpers+backupHelpers,ctx);
   return {ctx,state,alerts,stored:()=>JSON.parse(stored),fail:value=>fail=value};
 }
 const record=(id=1)=>({id,title:'Private deleted title',note:'Private deleted note',subject:'math',date:'2026-10-30',start:'10:00',minutes:30});
+(async()=>{
 let s=setup();s.state.sessions=[record()];
 assert.equal(s.ctx.moveSessionToTrash(s.state.sessions[0]),true);
 assert.equal(s.state.sessions.length,0);
@@ -38,9 +39,9 @@ assert.equal(s.ctx.moveSessionToTrash(s.state.sessions[0]),false);
 assert.equal(s.state.sessions.length,1);assert.equal(s.state.deletedSessions.length,0);
 s.fail(false);s.ctx.moveSessionToTrash(s.state.sessions[0]);entry=s.state.deletedSessions[0];s.fail(true);
 s.ctx.restoreDeletedSession(entry.id);assert.equal(s.state.sessions.length,0);assert.equal(s.state.deletedSessions.length,1);
-s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,1);
-s.fail(false);s.ctx.confirm=()=>false;s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,1);
-s.ctx.confirm=()=>true;s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,0);
+await s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,1);
+s.fail(false);s.ctx.confirmAction=async()=>false;await s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,1);
+s.ctx.confirmAction=async()=>true;await s.ctx.permanentlyDeleteSession(entry.id);assert.equal(s.state.deletedSessions.length,0);
 
 s=setup();s.state.sessions=[record()];s.ctx.moveSessionToTrash(s.state.sessions[0]);entry=s.state.deletedSessions[0];
 s.state.sessions=[record(2)];s.ctx.restoreDeletedSession(entry.id);
@@ -68,3 +69,4 @@ assert.match(source,/data-page="recently-deleted"/);
 assert.match(source,/const data=JSON.stringify\(exportableState\(\)/);
 assert.match(source,/deletedSessions=trashAfterImport/);
 console.log('PASS: deletion, restore, persistence failures, expiry, category changes, duplicate/ID handling, permanent deletion, export exclusion, import compatibility and reconciliation');
+})().catch(error=>{console.error(error);process.exitCode=1});

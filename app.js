@@ -48,6 +48,8 @@ let page = 'today';
 let selectedReleaseVersion = null;
 let timerTick;
 let installPrompt = null;
+let appDialogQueue = Promise.resolve();
+let toastTimer;
 let clearSessionActions = ()=>{};
 let unbindSessionInteractions = ()=>{};
 window.addEventListener('beforeinstallprompt', event=>{event.preventDefault();installPrompt=event});
@@ -70,7 +72,7 @@ function save() { localStorage.setItem('zhishi-state', JSON.stringify(state)); }
 // Persist first: failed writes must not remove a record from the in-memory state.
 function commitRecordState(patch){
   try{localStorage.setItem('zhishi-state',JSON.stringify({...state,...patch}));Object.assign(state,patch);return true}
-  catch(error){console.error('Record save failed',error);alert(tx('保存失败，数据未更改。请检查设备存储空间后重试。','Could not save. No data was changed. Check device storage and try again.'));return false}
+  catch(error){console.error('Record save failed',error);appAlert(tx('保存失败，数据未更改。请检查设备存储空间后重试。','Could not save. No data was changed. Check device storage and try again.'));return false}
 }
 function liveDeletedSessions(entries,now=Date.now()){
   return (Array.isArray(entries)?entries:[]).filter(entry=>entry&&typeof entry.id==='string'&&entry.record&&typeof entry.record.title==='string'&&Number.isFinite(entry.deletedAt)&&Number.isFinite(entry.expiresAt)&&entry.expiresAt>now);
@@ -89,18 +91,18 @@ function moveSessionToTrash(session){
 }
 function restoreDeletedSession(id){
   const entries=liveDeletedSessions(state.deletedSessions),entry=entries.find(item=>item.id===id);
-  if(!entry){render();alert(tx('该记录已过期或不再位于最近删除中。','This record has expired or is no longer in Recently deleted.'));return}
+  if(!entry){render();appAlert(tx('该记录已过期或不再位于最近删除中。','This record has expired or is no longer in Recently deleted.'));return}
   const record=normalizedTrashRecord(entry.record),duplicate=state.sessions.some(item=>sessionKey(item)===sessionKey(record));
   if(state.sessions.some(item=>item.id===record.id))record.id=Math.max(Date.now(),...state.sessions.map(item=>Number(item.id)||0))+1;
   const sessions=duplicate?state.sessions:[record,...state.sessions].sort((a,b)=>`${b.date} ${b.start}`.localeCompare(`${a.date} ${a.start}`));
   if(commitRecordState({sessions,deletedSessions:entries.filter(item=>item.id!==id)})){
-    render();if(duplicate)alert(tx('记录已存在，未重复恢复。','This record already exists; no duplicate was added.'));
+    render();if(duplicate)showToast(tx('记录已存在，未重复恢复。','This record already exists; no duplicate was added.'));
   }
 }
-function permanentlyDeleteSession(id){
+async function permanentlyDeleteSession(id){
   const entry=liveDeletedSessions(state.deletedSessions).find(item=>item.id===id);
   if(!entry){render();return}
-  if(!confirm(tx(`永久删除“${entry.record.title}”？此操作无法撤销。`,`Permanently delete “${entry.record.title}”? This cannot be undone.`)))return;
+  if(!await confirmAction(tx(`永久删除“${entry.record.title}”？此操作无法撤销。`,`Permanently delete “${entry.record.title}”? This cannot be undone.`)))return;
   if(commitRecordState({deletedSessions:liveDeletedSessions(state.deletedSessions).filter(item=>item.id!==id)}))render();
 }
 function exportableState(){
@@ -131,6 +133,50 @@ function minsText(m) { return isEn()?(m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m
 function todaySessions() { return state.sessions.filter(s => s.date === localDay()); }
 function todayMinutes() { return todaySessions().reduce((sum, s) => sum + s.minutes, 0); }
 function escapeHtml(s='') { return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function showAppDialog(message,{title=tx('提示','Notice'),actions=[{label:tx('知道了','OK'),value:true}],focusIndex=0,cancelValue=null}={}){
+  const show=()=>new Promise(resolve=>{
+    const trigger=document.activeElement,overlay=document.createElement('div');
+    overlay.className='confirm-overlay app-dialog-overlay';
+    overlay.innerHTML=`<section class="confirm-box app-dialog" role="alertdialog" aria-modal="true" aria-labelledby="app-dialog-title" aria-describedby="app-dialog-message"><h2 id="app-dialog-title">${escapeHtml(title)}</h2><p id="app-dialog-message">${escapeHtml(String(message))}</p><div class="app-dialog-actions ${actions.length>2?'app-dialog-choices':''}">${actions.map((action,index)=>`<button type="button" data-dialog-choice="${index}" class="${action.danger?'app-dialog-danger':action.value===cancelValue?'app-dialog-cancel':'app-dialog-accept'}">${escapeHtml(action.label)}</button>`).join('')}</div></section>`;
+    const backgrounds=[$app,...document.querySelectorAll('.confirm-overlay')].map(element=>({element,inert:element.inert}));
+    const buttons=[...overlay.querySelectorAll('[data-dialog-choice]')];
+    let closed=false;
+    const close=value=>{
+      if(closed)return;closed=true;
+      document.removeEventListener('keydown',onKey,true);overlay.remove();
+      backgrounds.forEach(({element,inert})=>{element.inert=inert});
+      if(trigger?.isConnected)trigger.focus({preventScroll:true});
+      resolve(value);
+    };
+    const onKey=event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close(cancelValue)}
+      else if(event.key==='Tab'){
+        event.preventDefault();event.stopImmediatePropagation();
+        const index=buttons.indexOf(document.activeElement);
+        buttons[(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length].focus();
+      }
+    };
+    buttons.forEach((button,index)=>button.onclick=()=>close(actions[index].value));
+    overlay.addEventListener('click',event=>{if(event.target===overlay)close(cancelValue)});
+    backgrounds.forEach(({element})=>{element.inert=true});
+    document.addEventListener('keydown',onKey,true);document.body.appendChild(overlay);buttons[focusIndex].focus();
+  });
+  const result=appDialogQueue.then(show);
+  appDialogQueue=result.then(()=>{},()=>{});
+  return result;
+}
+function appAlert(message){return showAppDialog(message)}
+function confirmAction(message,label=tx('确认','Confirm')){
+  return showAppDialog(message,{title:tx('请确认','Please confirm'),cancelValue:false,actions:[{label:tx('取消','Cancel'),value:false},{label,value:true,danger:true}]});
+}
+function chooseImportMode(count){
+  return showAppDialog(tx(`格式检查通过，共 ${count} 条记录。请选择导入方式。合并将自动去重。`,`Validation passed: ${count} sessions. Choose an import mode. Merging removes duplicates.`),{title:tx('导入备份','Import backup'),focusIndex:2,actions:[{label:tx('合并导入','Merge'),value:'1'},{label:tx('覆盖导入','Replace'),value:'2',danger:true},{label:tx('取消','Cancel'),value:null}]});
+}
+function showToast(message){
+  clearTimeout(toastTimer);document.querySelector('.app-toast')?.remove();
+  const toast=document.createElement('div');toast.className='app-toast';toast.setAttribute('role','status');toast.textContent=message;
+  document.body.appendChild(toast);toastTimer=setTimeout(()=>toast.remove(),4500);
+}
 function activeElapsedMs(now=Date.now()){
   if(!state.active)return 0;
   const current=state.active.status==='running'?Math.max(0,now-state.active.segmentStartedAt):0;
@@ -160,7 +206,7 @@ async function exportData(button){
     document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){
     console.error('Export failed',error);
-    alert(tx('导出失败，请稍后重试。','Export failed. Please try again.'));
+    appAlert(tx('导出失败，请稍后重试。','Export failed. Please try again.'));
   }finally{
     button.disabled=false;button.removeAttribute('aria-busy');
   }
@@ -326,7 +372,7 @@ function openProfileEditor(){
   overlay.addEventListener('click',event=>{if(event.target===overlay)close()});
   overlay.querySelector('.profile-cancel').onclick=close;
   overlay.querySelector('.remove-avatar').onclick=()=>{pendingAvatar='';overlay.querySelector('.profile-preview').innerHTML='<span>竹</span>'};
-  overlay.querySelector('#profile-avatar').onchange=async event=>{try{const file=event.target.files?.[0];if(!file)return;pendingAvatar=await compressAvatar(file);overlay.querySelector('.profile-preview').innerHTML=`<img src="${pendingAvatar}" alt="">`}catch(error){alert(error.message)}};
+  overlay.querySelector('#profile-avatar').onchange=async event=>{try{const file=event.target.files?.[0];if(!file)return;pendingAvatar=await compressAvatar(file);overlay.querySelector('.profile-preview').innerHTML=`<img src="${pendingAvatar}" alt="">`}catch(error){appAlert(error.message)}};
   overlay.querySelector('.profile-save').onclick=()=>{const name=overlay.querySelector('#profile-name').value.trim();localProfile={name,avatar:pendingAvatar};localStorage.setItem('zhishi-profile',JSON.stringify(localProfile));close();render()};
   document.body.appendChild(overlay);overlay.querySelector('#profile-name').focus();
 }
@@ -350,9 +396,9 @@ function openCategoryManager(archived=false){
     confirmCategoryArchive(category,false,()=>{setCategoryArchived(category.id,false);refresh()},overlay,button);
   });
   overlay.querySelectorAll('[data-category-edit]').forEach(button=>button.onclick=()=>{const category=categoryById(button.dataset.categoryEdit);close();if(category)openCategoryEditor(category)});
-  overlay.querySelectorAll('[data-category-delete]').forEach(button=>button.onclick=()=>{
+  overlay.querySelectorAll('[data-category-delete]').forEach(button=>button.onclick=async()=>{
     const category=categoryById(button.dataset.categoryDelete);if(!category)return;
-    if(!confirm(tx(`确定删除分类“${category.name}”吗？历史记录将保留并改为“未分类”。`,`Delete “${subjectName(category.id)}”? Past records will be kept as uncategorized.`)))return;
+    if(!await confirmAction(tx(`确定删除分类“${category.name}”吗？历史记录将保留并改为“未分类”。`,`Delete “${subjectName(category.id)}”? Past records will be kept as uncategorized.`)))return;
     state.categories=state.categories.filter(item=>item.id!==category.id);state.sessions.forEach(session=>{if(session.subject===category.id)session.subject=null});if(state.active?.subject===category.id)state.active.subject=null;save();close();render();openCategoryManager();
   });
   document.body.appendChild(overlay);overlay.querySelector(archived?'.category-back':'.category-add').focus();
@@ -404,7 +450,7 @@ function bind(){
   document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{const now=Date.now(),subject=el.dataset.subject||null;if(subject&&!availableCategories().some(category=>category.id===subject))return;state.active={subject,startedAt:now,status:'running',segmentStartedAt:now,accumulatedMs:0,pausedAt:null};save();page='today';render()});
   document.querySelector('#toggle-pause')?.addEventListener('click',togglePause);
   document.querySelector('#finish')?.addEventListener('click',finishSession);
-  document.querySelector('#discard')?.addEventListener('click',()=>{if(confirm(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
+  document.querySelector('#discard')?.addEventListener('click',async()=>{if(await confirmAction(tx('确定放弃本次记录吗？','Discard this session?'))){state.active=null;save();page='today';render()}});
   bindSessionDeletion();
   document.querySelector('#search')?.addEventListener('input',e=>{clearSessionActions();const q=e.target.value.toLowerCase();document.querySelector('#history-results').innerHTML=state.sessions.filter(s=>(s.title+s.note).toLowerCase().includes(q)).map(sessionCard).join('')||empty(tx('没有找到记录','No records found'),tx('换个关键词试试。','Try another keyword.'))});
   document.querySelector('#goal')?.addEventListener('change',e=>{state.goal=Number(e.target.value);save()});
@@ -420,9 +466,9 @@ function bind(){
       let raw;
       try{raw=JSON.parse(await file.text())}catch{throw new Error(tx('文件不是有效的 JSON 格式。','The file is not valid JSON.'))}
       const backup=validateBackup(raw);
-      const choice=prompt(tx(`格式检查通过，共 ${backup.sessions.length} 条记录。\n输入 1：合并并自动去重\n输入 2：覆盖现有数据\n其他内容：取消`,`Validation passed: ${backup.sessions.length} sessions.\nEnter 1: Merge and remove duplicates\nEnter 2: Replace existing data\nAnything else: Cancel`));
+      const choice=await chooseImportMode(backup.sessions.length);
       if(choice!=='1'&&choice!=='2')return;
-      if(choice==='2'&&!confirm(tx('覆盖后当前数据将被替换，并清空本机最近删除，确定继续吗？','Your current data will be replaced and Recently deleted will be cleared on this device. Continue?')))return;
+      if(choice==='2'&&!await confirmAction(tx('覆盖后当前数据将被替换，并清空本机最近删除，确定继续吗？','Your current data will be replaced and Recently deleted will be cleared on this device. Continue?')))return;
       const sessions=choice==='1'?mergeSessions(state.sessions,backup.sessions):mergeSessions([],backup.sessions);
       const removed=choice==='1'?state.sessions.length+backup.sessions.length-sessions.length:backup.sessions.length-sessions.length;
       const categories=choice==='1'?mergeCategories(state.categories,backup.categories):backup.categories;
@@ -430,12 +476,12 @@ function bind(){
       const deletedSessions=trashAfterImport(sessions,categories,choice==='2');
       if(!commitRecordState({goal:backup.goal,language:backup.language,theme:backup.theme,active:null,categories,sessions,deletedSessions}))return;
       document.documentElement.lang=isEn()?'en':'zh-CN'; applyTheme(); render();
-      alert(tx(`导入完成，共保留 ${sessions.length} 条记录，排除 ${removed} 条重复记录。`,`Import complete. ${sessions.length} sessions kept and ${removed} duplicates removed.`));
-    }catch(error){alert(tx('无法导入：','Import failed: ')+error.message)}finally{input.value=''}
+      showToast(tx(`导入完成，共保留 ${sessions.length} 条记录，排除 ${removed} 条重复记录。`,`Import complete. ${sessions.length} sessions kept and ${removed} duplicates removed.`));
+    }catch(error){appAlert(tx('无法导入：','Import failed: ')+error.message)}finally{input.value=''}
   });
   document.querySelector('#install')?.addEventListener('click',async()=>{
     if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;return}
-    alert(tx('请确认正在使用 HTTPS 地址。Android Chrome：点右上角 ⋮ → 添加到主屏幕 → 安装。','Make sure this page uses HTTPS. In Android Chrome, tap ⋮ → Add to Home screen → Install.'));
+    appAlert(tx('请确认正在使用 HTTPS 地址。Android Chrome：点右上角 ⋮ → 添加到主屏幕 → 安装。','Make sure this page uses HTTPS. In Android Chrome, tap ⋮ → Add to Home screen → Install.'));
   });
   document.querySelectorAll('[data-day]').forEach(el=>el.addEventListener('click',()=>{
     document.querySelectorAll('[data-day]').forEach(cell=>cell.classList.remove('selected'));
@@ -488,7 +534,7 @@ function bindSessionDeletion(){
     if(!session)return;
     event.preventDefault();cancelPress();reveal(session);ignoreNextClick=true;
   };
-  $app.onclick=event=>{
+  $app.onclick=async event=>{
     // Ignore the release click after a long press or a drag, including on action buttons.
     if(ignoreNextClick){ignoreNextClick=false;return}
     if(selected&&history?.contains(selected)&&!selected.contains(event.target)){
@@ -524,8 +570,8 @@ function bindSessionDeletion(){
       event.stopPropagation();
       const id=Number(button.dataset.deleteId),session=state.sessions.find(item=>item.id===id); if(!session)return;
       clearSessionActions();
-      if(!confirm(tx(`将“${session.title}”（${minsText(session.minutes)}）移至最近删除？7 天内可在“我的 → 最近删除”恢复。`,`Move “${session.title}” (${minsText(session.minutes)}) to Recently deleted? Restore it within 7 days from Me → Recently deleted.`)))return;
-      if(moveSessionToTrash(session)){render();alert(tx('已移至最近删除，7 天内可在“我的 → 最近删除”恢复。','Moved to Recently deleted. Restore within 7 days from Me → Recently deleted.'))}return;
+      if(!await confirmAction(tx(`将“${session.title}”（${minsText(session.minutes)}）移至最近删除？7 天内可在“我的 → 最近删除”恢复。`,`Move “${session.title}” (${minsText(session.minutes)}) to Recently deleted? Restore it within 7 days from Me → Recently deleted.`)))return;
+      if(moveSessionToTrash(session)){render();showToast(tx('已移至最近删除，7 天内可在“我的 → 最近删除”恢复。','Moved to Recently deleted. Restore within 7 days from Me → Recently deleted.'))}return;
     }
     const sessionEl=event.target.closest('.session');
     if(sessionEl){const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));clearSessionActions();if(session)openSessionDetail(session);return}
