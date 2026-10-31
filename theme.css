@@ -1,4 +1,12 @@
 :root{--theme-accent:#78903d;--theme-soft:#eef2e6}
+.trash-notice{color:var(--muted);font-size:13px;line-height:1.7;margin:0 0 20px}
+.trash-list{display:grid;gap:12px}
+.trash-card{margin:0;min-width:0;overflow-wrap:anywhere}
+.trash-card h2{font-size:17px}
+.trash-card p{font-size:12px;line-height:1.6;color:var(--muted)}
+.trash-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+.trash-actions button{min-height:44px;padding:10px 14px;border:1px solid var(--theme-accent);border-radius:12px;background:var(--theme-soft);color:var(--ink);font:inherit;font-size:13px}
+.trash-actions .trash-permanent{background:transparent;color:var(--danger,#a35145);border-color:currentColor}
 .bars i{background:var(--lime)}
 /* Let long English labels wrap without widening the two-column grid. */
 .subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

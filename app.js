@@ -42,6 +42,7 @@ if(!Array.isArray(state.categories))state.categories=defaultCategories.map(categ
 state.categories.forEach(category=>{category.archived=category.archived===true});
 state.sessions=(state.sessions||[]).map(session=>({...session,subject:state.categories.some(category=>category.id===session.subject)?session.subject:null}));
 if(state.active&&!state.categories.some(category=>category.id===state.active.subject))state.active.subject=null;
+state.deletedSessions=liveDeletedSessions(state.deletedSessions);
 localStorage.setItem('zhishi-state',JSON.stringify(state));
 let page = 'today';
 let selectedReleaseVersion = null;
@@ -66,6 +67,46 @@ function seed() {
   };
 }
 function save() { localStorage.setItem('zhishi-state', JSON.stringify(state)); }
+// Persist first: failed writes must not remove a record from the in-memory state.
+function commitRecordState(patch){
+  try{localStorage.setItem('zhishi-state',JSON.stringify({...state,...patch}));Object.assign(state,patch);return true}
+  catch(error){console.error('Record save failed',error);alert(tx('保存失败，数据未更改。请检查设备存储空间后重试。','Could not save. No data was changed. Check device storage and try again.'));return false}
+}
+function liveDeletedSessions(entries,now=Date.now()){
+  return (Array.isArray(entries)?entries:[]).filter(entry=>entry&&typeof entry.id==='string'&&entry.record&&typeof entry.record.title==='string'&&Number.isFinite(entry.deletedAt)&&Number.isFinite(entry.expiresAt)&&entry.expiresAt>now);
+}
+function normalizedTrashRecord(record,categories=state.categories){
+  return {...record,subject:categories.some(category=>category.id===record.subject)?record.subject:null};
+}
+function trashAfterImport(sessions,categories,replace){
+  if(replace)return [];
+  const keys=new Set(sessions.map(sessionKey));
+  return liveDeletedSessions(state.deletedSessions).filter(entry=>!keys.has(sessionKey(normalizedTrashRecord(entry.record,categories))));
+}
+function moveSessionToTrash(session){
+  const now=Date.now(),entry={id:`${now}-${Math.random().toString(36).slice(2)}`,record:{...session},deletedAt:now,expiresAt:now+7*86400000};
+  return commitRecordState({sessions:state.sessions.filter(item=>item.id!==session.id),deletedSessions:[entry,...liveDeletedSessions(state.deletedSessions)]});
+}
+function restoreDeletedSession(id){
+  const entries=liveDeletedSessions(state.deletedSessions),entry=entries.find(item=>item.id===id);
+  if(!entry){render();alert(tx('该记录已过期或不再位于最近删除中。','This record has expired or is no longer in Recently deleted.'));return}
+  const record=normalizedTrashRecord(entry.record),duplicate=state.sessions.some(item=>sessionKey(item)===sessionKey(record));
+  if(state.sessions.some(item=>item.id===record.id))record.id=Math.max(Date.now(),...state.sessions.map(item=>Number(item.id)||0))+1;
+  const sessions=duplicate?state.sessions:[record,...state.sessions].sort((a,b)=>`${b.date} ${b.start}`.localeCompare(`${a.date} ${a.start}`));
+  if(commitRecordState({sessions,deletedSessions:entries.filter(item=>item.id!==id)})){
+    render();if(duplicate)alert(tx('记录已存在，未重复恢复。','This record already exists; no duplicate was added.'));
+  }
+}
+function permanentlyDeleteSession(id){
+  const entry=liveDeletedSessions(state.deletedSessions).find(item=>item.id===id);
+  if(!entry){render();return}
+  if(!confirm(tx(`永久删除“${entry.record.title}”？此操作无法撤销。`,`Permanently delete “${entry.record.title}”? This cannot be undone.`)))return;
+  if(commitRecordState({deletedSessions:liveDeletedSessions(state.deletedSessions).filter(item=>item.id!==id)}))render();
+}
+function exportableState(){
+  const {goal,language,theme,seedDataRemoved,active,categories,sessions}=state;
+  return {goal,language,theme,seedDataRemoved,active,categories,sessions};
+}
 function isEn(){return state.language==='en'}
 function tx(zh,en){return isEn()?en:zh}
 function categoryById(id){return state.categories.find(category=>category.id===id)}
@@ -97,7 +138,7 @@ function activeElapsedMs(now=Date.now()){
 }
 function activeElapsedMinutes(){return Math.max(1,Math.round(activeElapsedMs()/60000))}
 async function exportData(button){
-  const data=JSON.stringify(state,null,2),native=window.Capacitor?.isNativePlatform?.();
+  const data=JSON.stringify(exportableState(),null,2),native=window.Capacitor?.isNativePlatform?.();
   button.disabled=true;button.setAttribute('aria-busy','true');
   try{
     if(native){
@@ -131,7 +172,7 @@ function shell(content) {
     <main>${content}</main>
     <nav class="bottom-nav">
       ${[['today','⌂',tx('今日','Today')],['history','◫',tx('记录','Records')],['add','＋',tx('开始','Start')],['insights','⌁',tx('趋势','Trends')],['profile','○',tx('我的','Me')]].map(([id,icon,label]) =>
-        `<button class="${page===id||(id==='profile'&&['about','changelog','changelog-detail','licenses'].includes(page))?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
+        `<button class="${page===id||(id==='profile'&&['about','changelog','changelog-detail','licenses','recently-deleted'].includes(page))?'active':''} ${id==='add'?'add-button':''}" data-page="${id}"><i>${icon}</i><span>${label}</span></button>`).join('')}
     </nav>
   </div>`;
 }
@@ -193,9 +234,16 @@ function heatmapView(){
 }
 function heatLevel(m){return m===0?0:m<60?1:m<180?2:m<300?3:4}
 function profileView(){return `<section class="profile-hero"><div class="big-avatar">${avatarMarkup()}</div><h1>${escapeHtml(profileName())}</h1><p>${tx('在自己的节奏里，持续生长。','Keep growing at your own pace.')}</p></section>
-  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><button id="manage-categories"><span><b>${tx('分类管理','Category management')}</b><small>${tx(`新增、编辑或删除分类 · 当前 ${state.categories.length} 个`,`Add, edit, or delete · ${state.categories.length} total`)}</small></span><i>›</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="warm-orange" ${state.theme==='warm-orange'?'selected':''}>${tx('暖橙','Warm Orange')}</option><option value="classic-dark" ${state.theme==='classic-dark'?'selected':''}>${tx('经典深色','Classic Dark')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button><button type="button" data-page="about"><span><b>${tx('关于知时','About ZHI SHI')}</b><small>${tx('版本信息、更新记录与开源许可','Version, release notes, and licenses')}</small></span><i>›</i></button></section><p class="version">${tx('知时','ZHI SHI')} ${appInfo.version} · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
+  <section class="settings"><button id="language"><span><b>${tx('切换为英文版','Switch to Chinese')}</b><small>${tx('一键将全部界面修改为英文','Change the entire interface to Chinese')}</small></span><i>文</i></button><button id="manage-categories"><span><b>${tx('分类管理','Category management')}</b><small>${tx(`新增、编辑或删除分类 · 当前 ${state.categories.length} 个`,`Add, edit, or delete · ${state.categories.length} total`)}</small></span><i>›</i></button><label><span><b>${tx('主题配色','Theme color')}</b><small>${tx('选择你喜欢的界面颜色','Choose your interface color')}</small></span><select id="theme"><option value="green" ${state.theme==='green'||!state.theme?'selected':''}>${tx('默认绿','Default Green')}</option><option value="bili-pink" ${state.theme==='bili-pink'?'selected':''}>${tx('哔站粉','Bilibili Pink')}</option><option value="youtube-red" ${state.theme==='youtube-red'?'selected':''}>${tx('油管红','YouTube Red')}</option><option value="bili-blue" ${state.theme==='bili-blue'?'selected':''}>${tx('哔站蓝','Bilibili Blue')}</option><option value="warm-orange" ${state.theme==='warm-orange'?'selected':''}>${tx('暖橙','Warm Orange')}</option><option value="classic-dark" ${state.theme==='classic-dark'?'selected':''}>${tx('经典深色','Classic Dark')}</option><option value="apple-white" ${state.theme==='apple-white'?'selected':''}>${tx('苹果白','Apple White')}</option></select></label><label><span><b>${tx('每日目标','Daily goal')}</b><small>${tx('当前','Current')} ${minsText(state.goal)}</small></span><select id="goal">${[120,180,240,300,360].map(n=>`<option value="${n}" ${state.goal===n?'selected':''}>${isEn()?n/60+' hours':n/60+' 小时'}</option>`).join('')}</select></label><button id="export"><span><b>${tx('导出数据','Export data')}</b><small>${tx('保存为 JSON 文件','Save as a JSON file')}</small></span><i>↓</i></button><button id="import"><span><b>${tx('导入备份','Import backup')}</b><small>${tx('检查格式后恢复 JSON 数据','Validate and restore JSON data')}</small></span><i>↑</i></button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="install"><span><b>${tx('安装到手机','Install on phone')}</b><small>${tx('添加到主屏幕，像 App 一样使用','Add to your home screen')}</small></span><i>＋</i></button>${recentlyDeletedEntry()}<button type="button" data-page="about"><span><b>${tx('关于知时','About ZHI SHI')}</b><small>${tx('版本信息、更新记录与开源许可','Version, release notes, and licenses')}</small></span><i>›</i></button></section><p class="version">${tx('知时','ZHI SHI')} ${appInfo.version} · ${tx('数据仅保存在本机','Data is stored only on this device')}</p>`}
 function infoPageHeading(title,backPage,backLabel){
   return `<button class="info-back" type="button" data-page="${backPage}">← ${backLabel}</button><section class="page-title compact info-title"><p class="eyebrow">ZHI SHI</p><h1>${title}</h1></section>`;
+}
+function recentlyDeletedView(){
+  const entries=liveDeletedSessions(state.deletedSessions).sort((a,b)=>b.deletedAt-a.deletedAt);
+  return `${infoPageHeading(tx('最近删除','Recently deleted'),'profile',tx('返回我的','Back to Me'))}<p class="trash-notice">${tx('删除后保留 7 天，到期后自动清理。仅保存在本机，不包含在导出备份中。','Records are kept for 7 days, then cleared on your next visit. Stored only on this device and excluded from exported backups.')}</p><div class="trash-list">${entries.length?entries.map(entry=>{const record=entry.record,days=Math.max(1,Math.ceil((entry.expiresAt-Date.now())/86400000));return `<article class="chart-card trash-card"><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.date)} · ${escapeHtml(record.start)} · ${minsText(record.minutes)}</p><p>${escapeHtml(subjectName(record.subject))} · ${tx(`剩余 ${days} 天`,`${days} day(s) remaining`)}</p><div class="trash-actions"><button type="button" data-restore-deleted="${escapeHtml(entry.id)}">${tx('恢复','Restore')}</button><button type="button" class="trash-permanent" data-permanent-delete="${escapeHtml(entry.id)}">${tx('永久删除','Delete permanently')}</button></div></article>`}).join(''):empty(tx('没有最近删除的记录','No recently deleted records'),tx('删除的记录将在这里保留 7 天。','Deleted records will remain here for 7 days.'))}</div>`;
+}
+function recentlyDeletedEntry(){
+  return `<button type="button" data-page="recently-deleted"><span><b>${tx('最近删除','Recently deleted')}</b><small>${tx('7 天内可恢复 · 不包含在导出备份中','Restore within 7 days · Not included in backups')}</small></span><i>›</i></button>`;
 }
 function aboutView(){
   return `${infoPageHeading(tx('关于知时','About ZHI SHI'),'profile',tx('返回我的','Back to Me'))}<section class="about-hero"><img class="about-icon" src="icon-192.png" width="76" height="76" alt="${tx('知时 App 图标','ZHI SHI app icon')}"><h2>${tx('知时','ZHI SHI')}</h2><p class="about-version">${tx('当前版本','Current version')} ${appInfo.version}</p><p>${tx('轻量、离线优先的学习记录工具，让每一次专注留下痕迹。','A lightweight, offline-first learning log that makes every focus session count.')}</p></section><section class="settings about-links"><button type="button" data-page="changelog"><span><b>${tx('更新记录','Release notes')}</b><small>${tx('查看各版本的主要更新','See what changed in each release')}</small></span><i>›</i></button><button type="button" data-page="licenses"><span><b>${tx('开源许可','Open-source licenses')}</b><small>${tx('查看项目许可说明与组件许可','Project license information and component licenses')}</small></span><i>›</i></button></section>`;
@@ -342,10 +390,14 @@ function streak(){const days=new Set(state.sessions.map(s=>s.date));let n=0,d=ne
 function render(){
   unbindSessionInteractions();
   clearInterval(timerTick);
-  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,'changelog-detail':changelogDetailView,licenses:licensesView};
+  const retained=liveDeletedSessions(state.deletedSessions);
+  if(retained.length!==state.deletedSessions.length)commitRecordState({deletedSessions:retained});
+  const views={today:todayView,add:addView,history:historyView,insights:insightsView,profile:profileView,about:aboutView,changelog:changelogView,'changelog-detail':changelogDetailView,licenses:licensesView,'recently-deleted':recentlyDeletedView};
   $app.innerHTML=shell((views[page]||todayView)()); bind();
 }
 function bind(){
+  document.querySelectorAll('[data-restore-deleted]').forEach(el=>el.onclick=()=>restoreDeletedSession(el.dataset.restoreDeleted));
+  document.querySelectorAll('[data-permanent-delete]').forEach(el=>el.onclick=()=>permanentlyDeleteSession(el.dataset.permanentDelete));
   document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{page=el.dataset.page;render();scrollTo(0,0)});
   document.querySelectorAll('[data-release-version]').forEach(el=>el.onclick=()=>{selectedReleaseVersion=el.dataset.releaseVersion;page='changelog-detail';render();scrollTo(0,0)});
   document.querySelectorAll('[data-edit-profile]').forEach(el=>el.onclick=openProfileEditor);
@@ -370,13 +422,14 @@ function bind(){
       const backup=validateBackup(raw);
       const choice=prompt(tx(`格式检查通过，共 ${backup.sessions.length} 条记录。\n输入 1：合并并自动去重\n输入 2：覆盖现有数据\n其他内容：取消`,`Validation passed: ${backup.sessions.length} sessions.\nEnter 1: Merge and remove duplicates\nEnter 2: Replace existing data\nAnything else: Cancel`));
       if(choice!=='1'&&choice!=='2')return;
-      if(choice==='2'&&!confirm(tx('覆盖后当前数据将被替换，确定继续吗？','Your current data will be replaced. Continue?')))return;
+      if(choice==='2'&&!confirm(tx('覆盖后当前数据将被替换，并清空本机最近删除，确定继续吗？','Your current data will be replaced and Recently deleted will be cleared on this device. Continue?')))return;
       const sessions=choice==='1'?mergeSessions(state.sessions,backup.sessions):mergeSessions([],backup.sessions);
       const removed=choice==='1'?state.sessions.length+backup.sessions.length-sessions.length:backup.sessions.length-sessions.length;
       const categories=choice==='1'?mergeCategories(state.categories,backup.categories):backup.categories;
       sessions.forEach(session=>{if(!categories.some(category=>category.id===session.subject))session.subject=null});
-      Object.assign(state,{goal:backup.goal,language:backup.language,theme:backup.theme,active:null,categories,sessions});
-      save(); document.documentElement.lang=isEn()?'en':'zh-CN'; applyTheme(); render();
+      const deletedSessions=trashAfterImport(sessions,categories,choice==='2');
+      if(!commitRecordState({goal:backup.goal,language:backup.language,theme:backup.theme,active:null,categories,sessions,deletedSessions}))return;
+      document.documentElement.lang=isEn()?'en':'zh-CN'; applyTheme(); render();
       alert(tx(`导入完成，共保留 ${sessions.length} 条记录，排除 ${removed} 条重复记录。`,`Import complete. ${sessions.length} sessions kept and ${removed} duplicates removed.`));
     }catch(error){alert(tx('无法导入：','Import failed: ')+error.message)}finally{input.value=''}
   });
@@ -471,8 +524,8 @@ function bindSessionDeletion(){
       event.stopPropagation();
       const id=Number(button.dataset.deleteId),session=state.sessions.find(item=>item.id===id); if(!session)return;
       clearSessionActions();
-      if(!confirm(tx(`确定删除“${session.title}”（${minsText(session.minutes)}）吗？此操作无法撤销。`,`Delete “${session.title}” (${minsText(session.minutes)})? This cannot be undone.`)))return;
-      state.sessions=state.sessions.filter(item=>item.id!==id);save();render();return;
+      if(!confirm(tx(`将“${session.title}”（${minsText(session.minutes)}）移至最近删除？7 天内可在“我的 → 最近删除”恢复。`,`Move “${session.title}” (${minsText(session.minutes)}) to Recently deleted? Restore it within 7 days from Me → Recently deleted.`)))return;
+      if(moveSessionToTrash(session)){render();alert(tx('已移至最近删除，7 天内可在“我的 → 最近删除”恢复。','Moved to Recently deleted. Restore within 7 days from Me → Recently deleted.'))}return;
     }
     const sessionEl=event.target.closest('.session');
     if(sessionEl){const session=state.sessions.find(item=>item.id===Number(sessionEl.dataset.id));clearSessionActions();if(session)openSessionDetail(session);return}
