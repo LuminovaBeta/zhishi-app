@@ -31,6 +31,8 @@
 @media(max-width:480px){
   .session.delete-enabled{grid-template-columns:43px minmax(0,1fr)}
   .session.delete-enabled .session-actions{grid-column:1 / -1;justify-content:flex-end;flex-wrap:wrap;min-width:0}
+  #history-results .session.delete-enabled{grid-template-columns:43px minmax(0,1fr) auto}
+  #history-results .session.delete-enabled .session-actions{grid-column:3;grid-row:1;flex-wrap:nowrap}
 }
 .release-preview{display:block;width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .release-preview:hover{border-color:var(--theme-accent)}
