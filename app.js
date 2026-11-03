@@ -45,6 +45,7 @@ if(state.active&&!state.categories.some(category=>category.id===state.active.sub
 state.deletedSessions=liveDeletedSessions(state.deletedSessions);
 localStorage.setItem('zhishi-state',JSON.stringify(state));
 let page = 'today';
+let startMode = 'focus';
 let selectedReleaseVersion = null;
 let timerTick;
 let installPrompt = null;
@@ -243,7 +244,9 @@ function activeCard() {
 }
 function addView() {
   if (state.active) return `<section class="page-title"><p class="eyebrow">FOCUS MODE</p><h1>${tx('保持专注','Stay focused')}</h1><p>${tx('时间正在安静地积累。','Your focused time is quietly adding up.')}</p></section>${activeCard()}<button class="danger-link" id="discard">${tx('放弃本次记录','Discard session')}</button>`;
-  return `<section class="page-title"><p class="eyebrow">NEW SESSION</p><h1>${tx('现在学什么？','What will you study?')}</h1><p>${tx('选择一个方向，计时会立即开始。','Choose a subject to start timing.')}</p></section>
+  const modes=`<div class="start-mode-selector" role="group" aria-label="${tx('选择模式','Choose a mode')}">${[['focus',tx('普通专注','Focus')],['timed-practice',tx('限时练习','Timed Practice')]].map(([mode,label])=>`<button type="button" data-start-mode="${mode}" aria-pressed="${startMode===mode}">${label}</button>`).join('')}</div>`;
+  if(startMode==='timed-practice')return `${modes}<section class="page-title"><p class="eyebrow">TIMED PRACTICE</p><h1>${tx('限时练习','Timed Practice')}</h1><p>${tx('为练习设定时限，集中完成一项任务。','Set a time limit and focus on one practice task.')}</p></section><aside class="soft-note"><i aria-hidden="true">◷</i><p><b>${tx('即将开放','Coming soon')}</b><br>${tx('练习配置即将加入，目前暂不可开始。','Practice settings are coming soon. This mode is not available to start yet.')}</p></aside>`;
+  return `${modes}<section class="page-title"><p class="eyebrow">NEW SESSION</p><h1>${tx('现在学什么？','What will you study?')}</h1><p>${tx('选择一个方向，计时会立即开始。','Choose a subject to start timing.')}</p></section>
   <div class="subject-grid">${availableCategories().map(category=>`<button class="subject-card" data-subject="${category.id}" style="--tone:${category.color}"><i>${escapeHtml(categoryIcon(category.id))}</i><b>${escapeHtml(subjectName(category.id))}</b><small>${tx('开始专注','Start focus')} →</small></button>`).join('')}<button class="subject-card" data-subject="" style="--tone:#d9ddd8"><i>—</i><b>${tx('未分类','Uncategorized')}</b><small>${tx('开始专注','Start focus')} →</small></button></div>
   <aside class="soft-note"><i>◎</i><p><b>${tx('专注计时','Focus timer')}</b><br>${tx('进行中不会展示时长，帮你把注意力留在学习本身。','The timer stays hidden so your attention remains on learning.')}</p></aside>`;
 }
@@ -444,7 +447,11 @@ function render(){
 function bind(){
   document.querySelectorAll('[data-restore-deleted]').forEach(el=>el.onclick=()=>restoreDeletedSession(el.dataset.restoreDeleted));
   document.querySelectorAll('[data-permanent-delete]').forEach(el=>el.onclick=()=>permanentlyDeleteSession(el.dataset.permanentDelete));
-  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{page=el.dataset.page;render();scrollTo(0,0)});
+  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{if(el.dataset.page==='add'&&page!=='add')startMode='focus';page=el.dataset.page;render();scrollTo(0,0)});
+  document.querySelectorAll('[data-start-mode]').forEach(el=>el.onclick=()=>{
+    if(state.active||!['focus','timed-practice'].includes(el.dataset.startMode)||startMode===el.dataset.startMode)return;
+    startMode=el.dataset.startMode;render();document.querySelector(`[data-start-mode="${startMode}"]`)?.focus({preventScroll:true});
+  });
   document.querySelectorAll('[data-release-version]').forEach(el=>el.onclick=()=>{selectedReleaseVersion=el.dataset.releaseVersion;page='changelog-detail';render();scrollTo(0,0)});
   document.querySelectorAll('[data-edit-profile]').forEach(el=>el.onclick=openProfileEditor);
   document.querySelectorAll('[data-subject]').forEach(el=>el.onclick=()=>{const now=Date.now(),subject=el.dataset.subject||null;if(subject&&!availableCategories().some(category=>category.id===subject))return;state.active={subject,startedAt:now,status:'running',segmentStartedAt:now,accumulatedMs:0,pausedAt:null};save();page='today';render()});
